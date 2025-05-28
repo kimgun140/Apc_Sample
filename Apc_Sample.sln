@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35913.81
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Apc_Sample", "Apc_Sample.csproj", "{E328D343-FDFF-4052-9A6E-06B1E0436D13}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RaceConditionSample", "..\RaceConditionSample\RaceConditionSample.csproj", "{792BF233-EC2E-46B8-8BBD-F68432D80FC8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E328D343-FDFF-4052-9A6E-06B1E0436D13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E328D343-FDFF-4052-9A6E-06B1E0436D13}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E328D343-FDFF-4052-9A6E-06B1E0436D13}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E328D343-FDFF-4052-9A6E-06B1E0436D13}.Release|Any CPU.Build.0 = Release|Any CPU
+		{792BF233-EC2E-46B8-8BBD-F68432D80FC8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{792BF233-EC2E-46B8-8BBD-F68432D80FC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{792BF233-EC2E-46B8-8BBD-F68432D80FC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{792BF233-EC2E-46B8-8BBD-F68432D80FC8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E6D9B315-BE67-4C5C-8288-F788461F7F1E}
+	EndGlobalSection
+EndGlobal
