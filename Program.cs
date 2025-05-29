@@ -18,10 +18,23 @@ namespace Apc_Sample
             // 이벤트 발생 => 스케줄 로드  
             apcSampleClass.APCEventHandler += apcSampleClass.ScheduleLoad;
 
+            apcSampleClass.TriggerEvent += () =>
+            {
+                apcSampleClass._workQueue.Add(() =>
+                {
+                    apcSampleClass.ScheduleLoad();
+
+                    //apcEventHandler(this, EventArgs.Empty);// 생성 
+                });
+            };
+
+
+
             //apcSampleClass.TriggerEvent += () =>
             //{
-            //     apcSampleClass.ScheduleLoad();
+            //    apcSampleClass.ScheduleLoad();
             //};
+
 
             //apcSampleClass.APCEventHandler += apcSampleClass.EventOuccur;
 

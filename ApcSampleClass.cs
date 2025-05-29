@@ -13,7 +13,7 @@ namespace Apc_Sample
 {
     internal class ApcSampleClass
     {
-        private readonly BlockingCollection<Action> _workQueue = new();
+        public  BlockingCollection<Action> _workQueue = new();
 
         public List<ScheduleDetail> schedules = new List<ScheduleDetail>();
 
@@ -109,7 +109,7 @@ namespace Apc_Sample
 
                     //}
 
-                    Thread.Sleep(1000);
+                    Thread.Sleep(100000);
                     // 대기 
 
                     //Console.WriteLine("스케줄 가져오기 완료");
@@ -117,6 +117,52 @@ namespace Apc_Sample
                 }
             }
         }
+
+        public void ScheduleLoad1(object sender, EventArgs e)
+        // 처음이랑 이벤트가 발생했을 때만 이걸 실행하면 됨 
+        {
+            string ConnectionString = "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=192.168.1.245)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=oras)));User Id=WINNERS;Password=WINNERS009;";
+
+            using (var conn = new OracleConnection(ConnectionString))
+            {
+                conn.Open();
+                string querry = $"SELECT * FROM SCHEDAYDETAIL WHERE SDDT_SCDYDATE = '20250515'";
+                while (true)
+                {
+                    Console.WriteLine("스케줄 로드 시작");
+
+                    List<ScheduleDetail> scheduleDetails = new List<ScheduleDetail>();
+
+                    using (var command = new OracleCommand(querry, conn))
+                    {
+
+                        using (var reader = command.ExecuteReader())
+                        {
+
+                            while (reader.Read())// 읽을게 있는동안 
+                            {
+                                ScheduleDetail scheduleDayDetail = new ScheduleDetail();
+                                // 대입용 리스트 
+                                //Console.WriteLine($" {reader["SDDT_TITLE"]}");
+
+                                scheduleDayDetail.SDDT_RUNTIME = reader["SDDT_RUNTIME"].ToString();
+                                scheduleDayDetail.SDDT_SCDYDATE = reader["SDDT_SCDYDATE"].ToString();
+                                scheduleDayDetail.SDDT_BRDTIME = reader["SDDT_BRDTIME"].ToString();
+                                scheduleDayDetail.SDDT_TITLE = reader["SDDT_TITLE"].ToString();
+
+                                scheduleDetails.Add(scheduleDayDetail);
+                            }
+                        }
+                        schedules = scheduleDetails;
+                    }
+
+                    Thread.Sleep(1000);
+                    Console.WriteLine("스케줄 가져오기 완료");
+
+                }
+            }
+        }
+
         public void ScheduleCheck_Print()// 현재 시간 커서 표시 
         {
             //커서 표시하기  NowPlaying 
@@ -144,23 +190,17 @@ namespace Apc_Sample
                             if (brdTime == nowTime)
                             {
                                 // 이벤트 
-                                if (apcEventHandler != null)
+                                if (TriggerEvent != null)
                                 {
                                     //_workQueue.Add(() =>
                                     //{
-                                        apcEventHandler(this, EventArgs.Empty);
-                                        //Thread.Sleep(1000);
-                                    //    _workQueue.CompleteAdding();
-
+                                    TriggerEvent();
+                                        //apcEventHandler(this, EventArgs.Empty);// 생성 
                                     //});
-                                   //foreach( var work in _workQueue.GetConsumingEnumerable())
-                                   // {
-                                   //     work();
-                                   // }
+                                    //TriggerEvent();
+                                    //Thread.Sleep(10000);
 
                                 }
-                                // 이벤트 
-                                //apcEventHandler?.Invoke(this, EventArgs.Empty);
                             }
                         }
                         else
@@ -189,6 +229,9 @@ namespace Apc_Sample
                 apcEventHandler -= value;
             }
         }
+
+
+
 
         public delegate void APCEventHandler1();
 
