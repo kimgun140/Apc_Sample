@@ -8,12 +8,6 @@ namespace Apc_Sample
 {
     internal class Eventclass
     {
-        public event EventHandler  MyEvent;
 
-        public void MyEventRun()
-        {
-         
-
-        }
     }
 }

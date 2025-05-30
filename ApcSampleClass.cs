@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
@@ -13,7 +14,7 @@ namespace Apc_Sample
 {
     internal class ApcSampleClass
     {
-        public  BlockingCollection<Action> _workQueue = new();
+        public BlockingCollection<Action> _workQueue = new();
 
         public List<ScheduleDetail> schedules = new List<ScheduleDetail>();
 
@@ -23,7 +24,42 @@ namespace Apc_Sample
 
         public List<ScheduleDetail> NewSchedules { get; set; }
 
-        private readonly object lockObj = new object();
+        //private readonly object lockObj = new object();
+
+
+        private EventHandler apcEventHandler;
+        public event EventHandler APCEventHandler
+        {
+            add
+            {
+                apcEventHandler += value;
+            }
+            remove
+            {
+                apcEventHandler -= value;
+            }
+        }
+
+
+
+
+        public delegate void APCEventHandler1();
+
+        public event APCEventHandler1 TriggerEvent;
+
+
+        public delegate void AsyncAPCEventHandler(object sender, EventArgs e);
+
+        public event AsyncAPCEventHandler AsyncTriggerEvent;
+
+        //public event EventHandler AsyncTriggerEvent2;
+
+        //public delegate Task AsyncTestEvent(object sender, AsyncCompletedEventArgs e);
+
+        public delegate Task AsyncTestEvent(object sender, EventArgs e);
+
+
+        public event AsyncTestEvent AsynSomething;
 
         public void ScheduleLoad()
         // 처음이랑 이벤트가 발생했을 때만 이걸 실행하면 됨 
@@ -69,7 +105,7 @@ namespace Apc_Sample
                 }
             }
         }
-        public void ScheduleLoad(object sender, EventArgs e)
+        public void ScheduleLoadWithArg(object sender, EventArgs e)
         // 처음이랑 이벤트가 발생했을 때만 이걸 실행하면 됨 
         {
             string ConnectionString = "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=192.168.1.245)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=oras)));User Id=WINNERS;Password=WINNERS009;";
@@ -106,10 +142,10 @@ namespace Apc_Sample
                     }
 
                     schedules = scheduleDetails;
-
+                    Console.WriteLine("이벤트 완료");
                     //}
 
-                    Thread.Sleep(100000);
+                    Thread.Sleep(10000);
                     // 대기 
 
                     //Console.WriteLine("스케줄 가져오기 완료");
@@ -118,52 +154,107 @@ namespace Apc_Sample
             }
         }
 
-        public void ScheduleLoad1(object sender, EventArgs e)
-        // 처음이랑 이벤트가 발생했을 때만 이걸 실행하면 됨 
+        public async Task EventHandling(object sender, EventArgs e)
+        // 변성표 
         {
+
+            Console.WriteLine("이벤트 시작 스케줄 가져오기 시작");
+
             string ConnectionString = "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=192.168.1.245)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=oras)));User Id=WINNERS;Password=WINNERS009;";
 
             using (var conn = new OracleConnection(ConnectionString))
             {
                 conn.Open();
                 string querry = $"SELECT * FROM SCHEDAYDETAIL WHERE SDDT_SCDYDATE = '20250515'";
-                while (true)
+
+                Console.WriteLine("스케줄 로드 시작");
+
+                List<ScheduleDetail> scheduleDetails = new List<ScheduleDetail>();
+
+                using (var command = new OracleCommand(querry, conn))
                 {
-                    Console.WriteLine("스케줄 로드 시작");
 
-                    List<ScheduleDetail> scheduleDetails = new List<ScheduleDetail>();
-
-                    using (var command = new OracleCommand(querry, conn))
+                    using (var reader = command.ExecuteReader())
                     {
 
-                        using (var reader = command.ExecuteReader())
+                        while (reader.Read())// 읽을게 있는동안 
                         {
+                            //Console.WriteLine("이벤트 처리중");
+                            ScheduleDetail scheduleDayDetail = new ScheduleDetail();
 
-                            while (reader.Read())// 읽을게 있는동안 
-                            {
-                                ScheduleDetail scheduleDayDetail = new ScheduleDetail();
-                                // 대입용 리스트 
-                                //Console.WriteLine($" {reader["SDDT_TITLE"]}");
+                            scheduleDayDetail.SDDT_RUNTIME = reader["SDDT_RUNTIME"].ToString();
+                            scheduleDayDetail.SDDT_SCDYDATE = reader["SDDT_SCDYDATE"].ToString();
+                            scheduleDayDetail.SDDT_BRDTIME = reader["SDDT_BRDTIME"].ToString();
+                            scheduleDayDetail.SDDT_TITLE = reader["SDDT_TITLE"].ToString();
 
-                                scheduleDayDetail.SDDT_RUNTIME = reader["SDDT_RUNTIME"].ToString();
-                                scheduleDayDetail.SDDT_SCDYDATE = reader["SDDT_SCDYDATE"].ToString();
-                                scheduleDayDetail.SDDT_BRDTIME = reader["SDDT_BRDTIME"].ToString();
-                                scheduleDayDetail.SDDT_TITLE = reader["SDDT_TITLE"].ToString();
-
-                                scheduleDetails.Add(scheduleDayDetail);
-                            }
+                            scheduleDetails.Add(scheduleDayDetail);
                         }
-                        schedules = scheduleDetails;
                     }
-
-                    Thread.Sleep(1000);
-                    Console.WriteLine("스케줄 가져오기 완료");
-
+                    schedules = scheduleDetails;
                 }
+
+
+                /*      await */
+                Task.Delay(15000);
+                //Thread.Sleep(10000);
+                // 여기서 락이 걸리는건 비동기 작업중인 커서 스레드 자체를 멈추기 때문
+                Console.WriteLine("이벤트 완료 스케줄 가져오기 완료");
+                Console.WriteLine("이벤트 완료 스케줄 가져오기 완료");
+
+
             }
         }
+        public void EventHandling1(object sender, EventArgs e)
+        // 변성표 
+        {
 
-        public void ScheduleCheck_Print()// 현재 시간 커서 표시 
+            Console.WriteLine("이벤트 시작 스케줄 가져오기 시작");
+
+            string ConnectionString = "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=192.168.1.245)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=oras)));User Id=WINNERS;Password=WINNERS009;";
+
+            using (var conn = new OracleConnection(ConnectionString))
+            {
+                conn.Open();
+                string querry = $"SELECT * FROM SCHEDAYDETAIL WHERE SDDT_SCDYDATE = '20250515'";
+
+                Console.WriteLine("스케줄 로드 시작");
+
+                List<ScheduleDetail> scheduleDetails = new List<ScheduleDetail>();
+
+                using (var command = new OracleCommand(querry, conn))
+                {
+
+                    using (var reader = command.ExecuteReader())
+                    {
+
+                        while (reader.Read())// 읽을게 있는동안 
+                        {
+                            //Console.WriteLine("이벤트 처리중");
+                            ScheduleDetail scheduleDayDetail = new ScheduleDetail();
+
+                            scheduleDayDetail.SDDT_RUNTIME = reader["SDDT_RUNTIME"].ToString();
+                            scheduleDayDetail.SDDT_SCDYDATE = reader["SDDT_SCDYDATE"].ToString();
+                            scheduleDayDetail.SDDT_BRDTIME = reader["SDDT_BRDTIME"].ToString();
+                            scheduleDayDetail.SDDT_TITLE = reader["SDDT_TITLE"].ToString();
+
+                            scheduleDetails.Add(scheduleDayDetail);
+                        }
+                    }
+                    schedules = scheduleDetails;
+                }
+
+
+                /*      await */
+                Task.Delay(15000);
+                //Thread.Sleep(10000);
+                // 여기서 락이 걸리는건 비동기 작업중인 커서 스레드 자체를 멈추기 때문
+                Console.WriteLine("이벤트 완료 스케줄 가져오기 완료");
+                Console.WriteLine("이벤트 완료 스케줄 가져오기 완료");
+
+
+            }
+        }
+        public async Task ScheduleCheck_Print()// 현재 시간 커서 표시  async await
         {
             //커서 표시하기  NowPlaying 
             while (true)
@@ -190,15 +281,17 @@ namespace Apc_Sample
                             if (brdTime == nowTime)
                             {
                                 // 이벤트 
-                                if (TriggerEvent != null)
+                                //if (AsynSomething != null)
+                                if (AsyncTriggerEvent != null)
                                 {
-                                    //_workQueue.Add(() =>
-                                    //{
-                                    TriggerEvent();
-                                        //apcEventHandler(this, EventArgs.Empty);// 생성 
-                                    //});
-                                    //TriggerEvent();
-                                    //Thread.Sleep(10000);
+                                    //AsyncTriggerEvent
+                                    AsyncTriggerEvent.Invoke(this, EventArgs.Empty);
+
+                                    //여기서 호출을 여러번 
+
+                                    //for (int i = 0; i < 100; i++)
+                                    //await AsynSomething.Invoke(this, EventArgs.Empty);
+
 
                                 }
                             }
@@ -212,46 +305,26 @@ namespace Apc_Sample
                     Console.WriteLine($"방송중인 프로그램 : {NowProgram.SDDT_TITLE}");
                     //TirggeredEvent();
                 }
-                Thread.Sleep(100); // 100ms 대기
+                Thread.Sleep(1); // 100ms 대기
 
             }
 
         }
-        private EventHandler apcEventHandler;
-        public event EventHandler APCEventHandler
+
+
+
+
+
+        //public event AsyncAPCEventHandler2 AsyncTriggerEvent3;
+
+
+
+
+
+        public void ChangeSchedule(EventArgs eventArgs)
         {
-            add
-            {
-                apcEventHandler += value;
-            }
-            remove
-            {
-                apcEventHandler -= value;
-            }
-        }
+            //AsyncTriggerEvent2.Invoke(this, eventArgs);
 
-
-
-
-        public delegate void APCEventHandler1();
-
-        public event APCEventHandler1 TriggerEvent;
-
-
-        //public delegate void AsyncAPCEventHandler();
-
-        //public event AsyncAPCEventHandler AsyncTriggerEvent;
-
-        //public delegate void AsyncAPCEventHandler(object sender, AsyncCompletedEventArgs e);
-
-        //public class MethodNameCompletedEventArgs : System.ComponentModel.AsyncCompletedEventArgs
-        //{
-        //    public string Result { get; }
-        //}
-
-
-        public void ChangeSchedule()
-        {
             string ConnectionString = "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=192.168.1.245)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=oras)));User Id=WINNERS;Password=WINNERS009;";
 
             using (var conn = new OracleConnection(ConnectionString))
