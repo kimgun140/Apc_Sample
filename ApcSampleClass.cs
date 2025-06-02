@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -18,6 +19,9 @@ namespace Apc_Sample
 
         public List<ScheduleDetail> schedules = new List<ScheduleDetail>();
 
+        private string TimeStamp = DateTime.Now.ToString("HHMMss000");
+        public Stopwatch stopwatch = new Stopwatch();
+
         public ScheduleDetail NowProgram { get; set; }
 
         public ScheduleDetail scheduleDetail { get; set; }
@@ -25,7 +29,12 @@ namespace Apc_Sample
         public List<ScheduleDetail> NewSchedules { get; set; }
 
         //private readonly object lockObj = new object();
+        //public ApcSampleClass()
+        //{
 
+
+        //    //stopwatch.Start();
+        //}
 
         private EventHandler apcEventHandler;
         public event EventHandler APCEventHandler
@@ -59,7 +68,7 @@ namespace Apc_Sample
         public delegate Task AsyncTestEvent(object sender, EventArgs e);
 
 
-        public event AsyncTestEvent AsynSomething;
+        public event AsyncTestEvent AsyncSomething;
 
         public void ScheduleLoad()
         // 처음이랑 이벤트가 발생했을 때만 이걸 실행하면 됨 
@@ -106,7 +115,7 @@ namespace Apc_Sample
             }
         }
         public void ScheduleLoadWithArg(object sender, EventArgs e)
-        // 처음이랑 이벤트가 발생했을 때만 이걸 실행하면 됨 
+        // 이벤트용 스케줄 로드 
         {
             string ConnectionString = "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=192.168.1.245)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=oras)));User Id=WINNERS;Password=WINNERS009;";
 
@@ -145,7 +154,7 @@ namespace Apc_Sample
                     Console.WriteLine("이벤트 완료");
                     //}
 
-                    Thread.Sleep(10000);
+                    //Thread.Sleep(10000);
                     // 대기 
 
                     //Console.WriteLine("스케줄 가져오기 완료");
@@ -254,7 +263,7 @@ namespace Apc_Sample
 
             }
         }
-        public async Task ScheduleCheck_Print()// 현재 시간 커서 표시  async await
+        public async Task ScheduleCheck_Print()// 현재 시간 커서 표시  
         {
             //커서 표시하기  NowPlaying 
             while (true)
@@ -275,24 +284,23 @@ namespace Apc_Sample
                         int nowTime = int.Parse(DateTime.Now.ToString("HHmmss"));
 
                         if (nowTime >= brdTime && brdTime + runTime > nowTime)
+                        //if ((brdTime) >= (int.Parse(DateTime.Now.ToString("HHmm00")) + int.Parse(stopwatch.Elapsed.Milliseconds.ToString())))
                         {
                             item.Now_Playing = true; // 방송중인 프로그램 플래그
                             NowProgram = item;
-                            if (brdTime == nowTime)
+                            //if (brdTime == nowTime)
+
+                            if ((brdTime) * 1000 <= (int.Parse(DateTime.Now.ToString("HHmmss000")) + int.Parse(stopwatch.Elapsed.Milliseconds.ToString())))
+                                // 시작시간이 됐을 때 이벤트 발생 
+                                // 이게 위로가면 현재 방송중인 프로그램 보다 뒤 시간에 있는건 전부다 발생한다. 
                             {
-                                // 이벤트 
-                                //if (AsynSomething != null)
+                                Console.WriteLine($"{TimeStamp}, {stopwatch.Elapsed.Seconds}");
+                                                                //if (AsynSomething != null)
                                 if (AsyncTriggerEvent != null)
                                 {
-                                    //AsyncTriggerEvent
+
                                     AsyncTriggerEvent.Invoke(this, EventArgs.Empty);
-
-                                    //여기서 호출을 여러번 
-
-                                    //for (int i = 0; i < 100; i++)
-                                    //await AsynSomething.Invoke(this, EventArgs.Empty);
-
-
+                                    //이벤트 
                                 }
                             }
                         }
@@ -305,12 +313,22 @@ namespace Apc_Sample
                     Console.WriteLine($"방송중인 프로그램 : {NowProgram.SDDT_TITLE}");
                     //TirggeredEvent();
                 }
-                Thread.Sleep(1); // 100ms 대기
+                Thread.Sleep(10); // 10ms 대기
 
             }
 
         }
-
+        public void WatchStart()
+        {
+            while (true)
+            {
+                if (DateTime.Now.Second == 00)
+                {
+                    stopwatch.Start();
+                    return;
+                }
+            }
+        }
 
 
 
