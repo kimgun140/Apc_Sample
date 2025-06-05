@@ -1,4 +1,5 @@
-﻿using NAudio.Wave;
+﻿using NAudio.CoreAudioApi;
+using NAudio.Wave;
 using Oracle.ManagedDataAccess.Client;
 using System;
 using System.Collections.Concurrent;
@@ -7,6 +8,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
@@ -148,7 +150,7 @@ namespace Apc_Sample
                     }
 
                     schedules = scheduleDetails;
-                    Console.WriteLine("이벤트 완료");
+
 
                     return Task.CompletedTask;
                     //Console.WriteLine("스케줄 가져오기 완료");
@@ -445,7 +447,7 @@ namespace Apc_Sample
 
         //}
 
-        public async Task NewCursorCheck_Print()
+        public async Task NewCursorCheck_Print()//스케줄 데이터 업데이트
         {
 
             Stopwatch Teststopwatch = Stopwatch.StartNew();
@@ -468,20 +470,17 @@ namespace Apc_Sample
                     .AddSeconds(int.Parse(item.SDDT_BRDTIME.Substring(4, 2)));
 
 
-                    var runtimeMilliSec0 = ConvertRuntimeToMilliseconds(item.SDDT_RUNTIME);// 스트링 밀리세컨드로 변환 
-                    TimeSpan runtime0 = TimeSpan.FromMilliseconds(runtimeMilliSec0);
-                    DateTime endTime0 = startTime.Add(runtime0);
-                    TimeSpan alreadyElapsed0 = now - startTime;
+                    var runtimeMilliSec0 = ConvertRuntimeToMilliseconds(item.SDDT_RUNTIME);// 스트링 => 밀리세컨드  
+                    TimeSpan runtime0 = TimeSpan.FromMilliseconds(runtimeMilliSec0);// 밀리세컨드 => 시간 
+                    DateTime endTime0 = startTime.Add(runtime0);// 현재시간 + 재생시간 =끝나는 시간 = 다음 시작시간 
+                    TimeSpan alreadyElapsed0 = now - startTime;// 현재시간 - 시작시간 = 간격  +면 지난거 -면 방송전
 
-                    if (now >= startTime && now < endTime0)// 이 runtimesec이 맞고 
+                    if (now >= startTime && now < endTime0)// 방송중 현재 방송중인 프로그램  
                     {
                         item.Now_Playing = true;
                         NowProgram = item;
-                        NowProgram.actualElapsed = alreadyElapsed0 + Teststopwatch.Elapsed;
-                        // 값이 순서를 어케 고치냐 
 
-
-                        // 이걸 쪼개서 쓰지않고 한번에 쓸수 있을텐데 이게 NowProgram이 필요해서 첫바퀴돌때는 다른값이 필요해 
+                        //NowProgram.actualElapsed = alreadyElapsed0 + Teststopwatch.Elapsed; // 지난 시간 + 스톱워치 시간 이거이거 여기서 업데이트를 해야할 필요없잖아 
 
                         // 방송 런타임 (ms)
                         NowProgram.runtimeMilliSec = ConvertRuntimeToMilliseconds(item.SDDT_RUNTIME);// 스트링 밀리세컨드로 변환
@@ -492,88 +491,167 @@ namespace Apc_Sample
                         TimeSpan alreadyElapsed = now - startTime;
                         //현재시간이랑 방송시작시간의 차이 방송시작한지 7초 지남 
                     }
-                    // (현재시간 - 방송 시작시간) + 스탑워치 진행시간
-
-                    //if (now >= startTime && now < endTime)// 이 runtimesec이 맞고 
-                    //{
-                    //    item.Now_Playing = true;
-                    //    NowProgram = item;
-                    //    NowProgram.actualElapsed = alreadyElapsed + Teststopwatch.Elapsed;
-                    //    // 값이 순서를 어케 고치냐 
-
-                    //}
                     if (NowProgram != null)
                     {
                         NowRuntime = int.Parse(NowProgram.SDDT_RUNTIME) / 1000;
                         NowBrdTime = int.Parse(NowProgram.SDDT_BRDTIME);
 
                     }
-                    if (NowBrdTime + NowRuntime == int.Parse(item.SDDT_BRDTIME))// 이거이거 
+                    if (NowBrdTime + NowRuntime == int.Parse(item.SDDT_BRDTIME))// Next Program 
                     {
                         NextProgram = item;
                     }
 
-
-                    //여기가 분리 
-                    //if (Math.Abs(actualElapsed.TotalMilliseconds - runtimeMilliSec) <= 1.0)//  재생시간(밀리세컨드) 
-                    //    // 이걸 다른걸로 분리를 하는게 스레드를 만들어서 분리를 해야겠지 
-                    //{
-                    //    Console.WriteLine($"{Teststopwatch.ElapsedMilliseconds:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
-                    //    Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
-
-
-                    //    Console.WriteLine($"actualElapsed.TotalMilliseconds: {actualElapsed.TotalMilliseconds}, {DateTime.Now:HH:mm:ss.fff}");
-                    //    Console.WriteLine($"[검증] actualElapsed: {actualElapsed.TotalMilliseconds}ms / 런타임: {runtimeMilliSec}ms");
-
-                    //    await AsyncSomething?.Invoke(this, EventArgs.Empty);
-
-                    //}
                 }
                 Console.WriteLine($"{DateTime.Now}");
                 Console.WriteLine($"{NowProgram?.SDDT_SCDYDATE}");
 
                 Console.WriteLine($"방송중인 프로그램 : {NowProgram?.SDDT_TITLE}");
-                //Thread.Sleep(1); // 더 정밀한 주기로 변경
+                Thread.Sleep(1); // 더 정밀한 주기로 변경
 
             }
 
         }
 
-        public async void WatchMethod()
+        public async Task WatchMethod()
         {
 
             Stopwatch WatchisWatch = new Stopwatch();
 
-            Thread.Sleep(3000);// 첫시작은 우선 처음에 걸려야지 
+            Thread.Sleep(3000);// 첫시작 업데이트 기다리기
 
             while (true)
             {
-                Thread.Sleep(20);//20ms 
-                if (Math.Abs(NowProgram.actualElapsed.TotalMilliseconds - NowProgram.runtimeMilliSec) <= 50)// 시작시간 50ms안으로 들어오면 1ms단위로 반복 
-                {
+                // 비교는 now , next 시간을 비교해서 1ms 이하일때 
+                var runtimeMilliSec0 = ConvertRuntimeToMilliseconds(NowProgram.SDDT_RUNTIME);// 스트링 밀리세컨드로 변환
+                TimeSpan runtime0 = TimeSpan.FromMilliseconds(runtimeMilliSec0);
+                DateTime endTime0 = NowProgram.StartTime.Add(runtime0);
+                TimeSpan alreadyElapsed0 = DateTime.Now - NowProgram.StartTime;
+                NowProgram.actualElapsed = alreadyElapsed0 + WatchisWatch.Elapsed;
+
+                //업데이트 현재시간이랑 방송시작시간의 차이 런타임이랑 비교할게 아니야 다음 시작 시간이나 
+
+                //Thread.Sleep(20);//20ms 
+                if (Math.Abs(NowProgram.actualElapsed.TotalMilliseconds - NowProgram.runtimeMilliSec) <= 0.05)// 시작시간 50ms안으로 들어오면 1ms단위로 반복 
+                {// 전체 재생시간이랑 현재 재생지점의 차이가 
+                    Thread.Sleep(50);
+
                     WatchisWatch.Restart();
-
-                    //while (true)// 1ms동안은 계속 반속
+                    long currentMs = 0;
+                    while (true)
                     {
-                        //while ((Math.Abs(NowProgram.actualElapsed.TotalMilliseconds - NowProgram.runtimeMilliSec) == 1.0)) // 
-                        if ((Math.Abs(NowProgram.actualElapsed.TotalMilliseconds - NowProgram.runtimeMilliSec) == 1.0))
+
+                        runtimeMilliSec0 = ConvertRuntimeToMilliseconds(NowProgram.SDDT_RUNTIME);// 스트링 밀리세컨드로 변환
+                        runtime0 = TimeSpan.FromMilliseconds(runtimeMilliSec0);
+                        endTime0 = NowProgram.StartTime.Add(runtime0);
+                        alreadyElapsed0 = DateTime.Now - NowProgram.StartTime;
+                        NowProgram.actualElapsed = alreadyElapsed0 + WatchisWatch.Elapsed;
+
+                        if (WatchisWatch.ElapsedMilliseconds > currentMs)
                         {
-                            Console.WriteLine($"{WatchisWatch.ElapsedMilliseconds:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
-                            Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
+                            currentMs = WatchisWatch.ElapsedMilliseconds;
+                            Console.WriteLine($"{currentMs}");
+                            // 스탑워치시간이랑 
+                            //if ((Math.Abs(NowProgram.actualElapsed.TotalMilliseconds - WatchisWatch.ElapsedMilliseconds) <= 1.0))
+                            if ((Math.Abs(NowProgram.actualElapsed.TotalMilliseconds - NowProgram.runtimeMilliSec) <= 1.0))// NowProgram.actualElapsed이거 업데이트가 늦는데 
+                            {
+                                //if ((Math.Abs(NowProgram.actualElapsed.TotalMilliseconds - NowProgram.runtimeMilliSec) <= 1.0))
+                                //    {
+                                Console.WriteLine($"{WatchisWatch.ElapsedMilliseconds:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
+                                Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
 
+                                AsyncSomething?.Invoke(this, EventArgs.Empty);
+                                break;
 
-                            Console.WriteLine($"actualElapsed.TotalMilliseconds: {NowProgram.actualElapsed.TotalMilliseconds}, {DateTime.Now:HH:mm:ss.fff}");
-                            Console.WriteLine($"[검증] actualElapsed: {NowProgram.actualElapsed.TotalMilliseconds}ms / 런타임: {NowProgram.runtimeMilliSec}ms");
-
-                            await AsyncSomething?.Invoke(this, EventArgs.Empty);
-
-
-                            //Thread.Sleep(1);
+                            }
                         }
                     }
-                    // 보장시간 10-15ms
-
                 }
+                // 보장시간 10-15ms
+
+
+                //Thread.Sleep(50);
+
+            }
+        }
+        public async Task WatchMethod1()
+        {
+            Thread.Sleep(3000);
+            while (true)
+            {
+                TimeSpan diff = NextProgram.StartTime - DateTime.Now;
+
+                if (diff.TotalMilliseconds > 50)
+                {
+                    Thread.Sleep(50); // 넉넉하게 기다리기
+                }
+                else
+                {
+                    Stopwatch sw = Stopwatch.StartNew();
+                    long lastMs = 0;
+                    while (true)
+                    {
+                        if (sw.ElapsedMilliseconds > lastMs)
+                        {
+                            lastMs = sw.ElapsedMilliseconds;
+
+                            double delta = Math.Abs((NextProgram.StartTime - DateTime.Now).TotalMilliseconds);
+
+                            if (delta <= 1.0)
+                            {
+                                // 정확한 타이밍 도달
+                                await AsyncSomething?.Invoke(this, EventArgs.Empty);
+                                break;
+                            }
+
+                            if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds < -10)
+                            {
+                                // 놓쳤거나 지났으면 루프 탈출
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+
+        }
+        public string filePath = "";
+        public WasapiOut? wasapiOut;
+        public AudioFileReader? audioFileReader;
+
+        public void WasapiPlay()
+        {
+            // 오디오 파일이 다음 파일이랑 매핑이 
+            filePath = @"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201120000_녹음12.wav";
+            try
+            {
+                if (wasapiOut != null && wasapiOut.PlaybackState == PlaybackState.Playing)// 
+                {
+                    wasapiOut.Stop();
+                }
+
+                //if (wasapiOut == null)
+                //{
+
+                audioFileReader = new AudioFileReader(filePath);
+                wasapiOut = new WasapiOut(AudioClientShareMode.Shared, false, 100);// 
+                                                                                   // AudioClientShareMode.Shared: 사운다 카드 공유모드 오디올르 자동으로 리샘프링한다. 
+                                                                                   // eventsync: 오디오 플레이하는 백그라운드 스레드 동작제어 , true 추가 오디오 원할 때 이벤트 수신, false 잠시 대기후 오디오 제공 
+                                                                                   // Latency 지연시간 
+                wasapiOut.Init(audioFileReader);
+                Console.WriteLine($"{NowProgram.ToString},{NowProgram.FilePath}");
+
+
+                //}
+                wasapiOut?.Play();
+
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                //MessageBox.Show(ex.Message);
             }
         }
         static void BusyWait(double milliseconds)
@@ -752,16 +830,20 @@ namespace Apc_Sample
         {
             string audioFileName = "";
             using (var audioFile = new AudioFileReader(audioFileName))
-            using (var outputDevice = new WasapiOut())
+            using (var outputDevice = new WasapiOut(AudioClientShareMode.Shared, false, 100))
             {
+
                 outputDevice.Init(audioFile);
                 outputDevice.Play();
                 while (outputDevice.PlaybackState == PlaybackState.Playing)
                 {
                     Thread.Sleep(1000);
                 }
+
+
             }
 
         }
+
     }
 }

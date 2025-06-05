@@ -15,39 +15,60 @@ namespace Apc_Sample
             DateTime _lastInvokeTime = DateTime.MinValue;
             TimeSpan _throttleInterval = TimeSpan.FromMilliseconds(20);// 0.01
 
-            apcSampleClass.AsyncTriggerEvent += (sender, EventArgs) =>
-                {
-                    var now = DateTime.Now;
+            //apcSampleClass.AsyncTriggerEvent += (sender, EventArgs) =>
+            //    {
+            //        var now = DateTime.Now;
 
-                    if ((now - _lastInvokeTime) < _throttleInterval)
-                    {
-                        // 간격 안쪽에 발생한 이벤트는 무시 / 현재시간 - 마지막 이벤트 발생시간 =< 간격보다 작을 때 무시  
-                        return;
-                    }
+            //        if ((now - _lastInvokeTime) < _throttleInterval)
+            //        {
+            //            // 간격 안쪽에 발생한 이벤트는 무시 / 현재시간 - 마지막 이벤트 발생시간 =< 간격보다 작을 때 무시  
+            //            return;
+            //        }
 
-                    _lastInvokeTime = now;
+            //        _lastInvokeTime = now;
 
-                    //이벤트가 발생
-                    Task.Run(async () =>
-                    {
-                        try
-                        // 
-                        {
-                            apcSampleClass.ScheduleLoadWithArg(sender, EventArgs.Empty);
-                            //await Task.Delay(1000); 
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine(ex);
-                        }
-                    });
-                };
+            //        //이벤트가 발생
+            //        Task.Run(async () =>
+            //        {
+            //            try
+            //            // 
+            //            {
+            //                apcSampleClass.ScheduleLoadWithArg(sender, EventArgs.Empty);
+            //                //await Task.Delay(1000); 
+            //            }
+            //            catch (Exception ex)
+            //            {
+            //                Console.WriteLine(ex);
+            //            }
+            //        });
+            //    };
+
+
+            Thread LoadThread = new Thread(() =>
+            {
+                apcSampleClass.ScheduleLoad();
+            });
+            LoadThread.Start();
+
+            // 생산자 스레드 이벤트발생 시킴 
+            Thread CursorThread = new Thread(() =>
+            {
+                apcSampleClass.NewCursorCheck_Print();
+            });
+            CursorThread.Start();
+
+            Thread WatchThread = new Thread(() =>
+            {
+                apcSampleClass.WatchMethod();
+            }
+            );
+            WatchThread.Start();
 
             apcSampleClass.AsyncSomething += async (sender, EventArgs) =>
             {
                 var now = DateTime.Now;
 
-                if ((now - _lastInvokeTime) < _throttleInterval)
+                if ((now - _lastInvokeTime) < _throttleInterval) 
                 {
                     // 간격 안쪽에 발생한 이벤트는 무시 / 현재시간 - 마지막 이벤트 발생시간 =< 간격보다 작을 때 무시  
                     return;
@@ -60,8 +81,12 @@ namespace Apc_Sample
                 try
                 // 
                 {
-                    await apcSampleClass.ScheduleLoadWithArg(sender, EventArgs.Empty);
+                    //await apcSampleClass.ScheduleLoadWithArg(sender, EventArgs.Empty); // 이벤트 
+
+                    apcSampleClass.WasapiPlay();
                     //await Task.Delay(1000); 
+                    //WatchThread.Start();
+
                 }
                 catch (Exception ex)
                 {
@@ -111,26 +136,6 @@ namespace Apc_Sample
 
 
 
-            Thread LoadThread = new Thread(() =>
-            {
-                apcSampleClass.ScheduleLoad();
-            });
-            LoadThread.Start();
-
-            // 생산자 스레드 이벤트발생 시킴 
-            Thread CursorThread = new Thread(() =>
-            {
-                apcSampleClass.NewCursorCheck_Print();
-            });
-            CursorThread.Start();
-
-
-            Thread WatchThread = new Thread(() =>
-            {
-                apcSampleClass.WatchMethod();
-            }
-            );
-            WatchThread.Start();
 
 
         }
