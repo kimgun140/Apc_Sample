@@ -53,13 +53,16 @@ namespace Apc_Sample
             // 생산자 스레드 이벤트발생 시킴 
             Thread CursorThread = new Thread(() =>
             {
-                apcSampleClass.NewCursorCheck_Print();
+                //apcSampleClass.NewCursorCheck_Print();
+                apcSampleClass. NewCursorCheck_Print11();
             });
             CursorThread.Start();
 
             Thread WatchThread = new Thread(() =>
             {
-                apcSampleClass.WatchMethod();
+                //apcSampleClass.WatchMethod();
+                apcSampleClass.WatchMethod11();
+
             }
             );
             WatchThread.Start();

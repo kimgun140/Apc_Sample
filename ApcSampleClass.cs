@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
@@ -31,8 +32,8 @@ namespace Apc_Sample
 
         private Stopwatch BroadCatsStarted = new Stopwatch();
         // 방송런타임 측정용 
-        private int NowRuntime;
-        private int NowBrdTime;
+        private int NowProRuntime;
+        private int NowProBrdTime;
 
 
 
@@ -144,6 +145,8 @@ namespace Apc_Sample
                             scheduleDayDetail.SDDT_SCDYDATE = reader["SDDT_SCDYDATE"].ToString();
                             scheduleDayDetail.SDDT_BRDTIME = reader["SDDT_BRDTIME"].ToString();
                             scheduleDayDetail.SDDT_TITLE = reader["SDDT_TITLE"].ToString();
+
+                            scheduleDayDetail.runtimeMilliSec = ConvertRuntimeToMilliseconds(scheduleDayDetail.SDDT_RUNTIME);
 
                             scheduleDetails.Add(scheduleDayDetail);
                         }
@@ -451,7 +454,7 @@ namespace Apc_Sample
         {
 
             Stopwatch Teststopwatch = Stopwatch.StartNew();
-            //stopwatch에서 datetime으로 처리? thread.sleep으로? 
+
             while (true)
             {
 
@@ -479,7 +482,8 @@ namespace Apc_Sample
                     {
                         item.Now_Playing = true;
                         NowProgram = item;
-
+                        NowProRuntime = int.Parse(NowProgram.SDDT_RUNTIME) / 1000;
+                        NowProBrdTime = int.Parse(NowProgram.SDDT_BRDTIME);
                         //NowProgram.actualElapsed = alreadyElapsed0 + Teststopwatch.Elapsed; // 지난 시간 + 스톱워치 시간 이거이거 여기서 업데이트를 해야할 필요없잖아 
 
                         // 방송 런타임 (ms)
@@ -491,27 +495,85 @@ namespace Apc_Sample
                         TimeSpan alreadyElapsed = now - startTime;
                         //현재시간이랑 방송시작시간의 차이 방송시작한지 7초 지남 
                     }
-                    if (NowProgram != null)
-                    {
-                        NowRuntime = int.Parse(NowProgram.SDDT_RUNTIME) / 1000;
-                        NowBrdTime = int.Parse(NowProgram.SDDT_BRDTIME);
 
-                    }
-                    if (NowBrdTime + NowRuntime == int.Parse(item.SDDT_BRDTIME))// Next Program 
+                    if (NowProBrdTime + NowProRuntime == int.Parse(item.SDDT_BRDTIME))// Next Program 
                     {
                         NextProgram = item;
                     }
 
                 }
-                Console.WriteLine($"{DateTime.Now}");
-                Console.WriteLine($"{NowProgram?.SDDT_SCDYDATE}");
+                Console.WriteLine($"{DateTime.Now:yyyy/MM/dd/fff}");
 
                 Console.WriteLine($"방송중인 프로그램 : {NowProgram?.SDDT_TITLE}");
-                Thread.Sleep(1); // 더 정밀한 주기로 변경
+                Thread.Sleep(10000); // 더 정밀한 주기로 변경
 
             }
 
         }
+
+        public async Task NewCursorCheck_Print11()//스케줄 데이터 업데이트
+        {
+
+            //Stopwatch Teststopwatch = Stopwatch.StartNew();
+
+            while (true)
+            {
+
+                if (schedules.Count == 0)
+                {
+                    Console.WriteLine("스케줄이 없습니다. 로드 중");
+                    Thread.Sleep(1000);
+                }
+                foreach (var item in schedules)
+                {
+                    var runtime = double.Parse(item.SDDT_RUNTIME); // 예: "11000" 밀리세컨드
+                    var runtime1 = int.Parse(item.SDDT_RUNTIME); // 예: "11000" 밀리세컨드
+
+                    var Runtimespan = TimeSpan.FromMilliseconds(runtime);
+                    //double runtime = 5740000; // 밀리세컨드
+                    int minutes = runtime1 / 100000;
+                    int seconds = (runtime1 / 1000) % 100;
+                    TimeSpan time = new TimeSpan(0, 0, minutes, seconds);
+
+
+   
+                  
+
+                    // 분 단위로 출력
+                    double totalMinutes = Runtimespan.TotalMinutes;
+                    var StratTime = StringToDateTime(item.SDDT_BRDTIME);
+                    //var EndTime = StratTime + Runtimespan;
+                    var EndTime = StratTime + time;
+
+                    if (DateTime.Now >= item.StartTime && DateTime.Now < EndTime)
+                    {
+                        item.Now_Playing = true;
+                        NowProgram = item;
+                        NowProRuntime = int.Parse(item.SDDT_RUNTIME);
+                        NowProBrdTime = int.Parse(item.SDDT_BRDTIME);
+
+                    }
+
+                    else
+                    {
+                        item.Now_Playing = false;
+                    }
+
+                    if (NowProRuntime/1000 + NowProBrdTime == int.Parse(item.SDDT_BRDTIME))
+                    {
+                        NextProgram = item;
+                        item.Now_Playing = false;
+                    }
+                }
+                Console.WriteLine($"{DateTime.Now:yyyy/MM/dd/fff}");
+
+                Console.WriteLine($"방송중인 프로그램 : {NowProgram?.SDDT_TITLE}");
+                //Thread.Sleep(10000); // 더 정밀한 주기로 변경
+
+            }
+
+        }
+
 
         public async Task WatchMethod()
         {
@@ -528,8 +590,6 @@ namespace Apc_Sample
                 DateTime endTime0 = NowProgram.StartTime.Add(runtime0);
                 TimeSpan alreadyElapsed0 = DateTime.Now - NowProgram.StartTime;
                 NowProgram.actualElapsed = alreadyElapsed0 + WatchisWatch.Elapsed;
-
-                //업데이트 현재시간이랑 방송시작시간의 차이 런타임이랑 비교할게 아니야 다음 시작 시간이나 
 
                 //Thread.Sleep(20);//20ms 
                 if (Math.Abs(NowProgram.actualElapsed.TotalMilliseconds - NowProgram.runtimeMilliSec) <= 0.05)// 시작시간 50ms안으로 들어오면 1ms단위로 반복 
@@ -560,7 +620,7 @@ namespace Apc_Sample
                                 Console.WriteLine($"{WatchisWatch.ElapsedMilliseconds:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
                                 Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
 
-                                AsyncSomething?.Invoke(this, EventArgs.Empty);
+                                AsyncSomething?.Invoke(this, EventArgs.Empty);//이벤트 하나 더 
                                 break;
 
                             }
@@ -572,6 +632,49 @@ namespace Apc_Sample
 
                 //Thread.Sleep(50);
 
+            }
+        }
+        public async Task WatchMethod11()
+        {
+
+            Stopwatch WatchisWatch = new Stopwatch();
+
+            Thread.Sleep(5000);// 첫시작 업데이트 기다리기
+
+            while (true)
+            {
+                // 비교는 now , next 시간을 비교해서 1ms 이하일때 
+
+
+                //Thread.Sleep(20);//20ms 
+                if ((NextProgram.StartTime - DateTime.Now).Milliseconds <= 50.0)// 시작시간 50ms안으로 들어오면 1ms단위로 반복 
+                {// 전체 재생시간이랑 현재 재생지점의 차이가 
+                    Thread.Sleep(50);
+
+                    WatchisWatch.Restart();
+                    long currentMs = 0;
+                    while (true)
+                    {
+
+                        if (WatchisWatch.ElapsedMilliseconds > currentMs)
+                        {
+                            currentMs = WatchisWatch.ElapsedMilliseconds;
+                            Console.WriteLine($"{currentMs}");
+                            // 스탑워치시간이랑 
+                            //if ((Math.Abs(NowProgram.actualElapsed.TotalMilliseconds - WatchisWatch.ElapsedMilliseconds) <= 1.0))
+                            if ((NextProgram.StartTime - DateTime.Now).Milliseconds <= 1.0)// 
+                            {
+
+                                Console.WriteLine($"{WatchisWatch.ElapsedMilliseconds:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
+                                Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
+
+                                AsyncSomething?.Invoke(this, EventArgs.Empty);//
+                                break;
+
+                            }
+                        }
+                    }
+                }
             }
         }
         public async Task WatchMethod1()
@@ -624,6 +727,7 @@ namespace Apc_Sample
         {
             // 오디오 파일이 다음 파일이랑 매핑이 
             filePath = @"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201120000_녹음12.wav";
+            string NextProgramFilePath = @"""C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201220000_녹음22.wav""";
             try
             {
                 if (wasapiOut != null && wasapiOut.PlaybackState == PlaybackState.Playing)// 
@@ -636,9 +740,9 @@ namespace Apc_Sample
 
                 audioFileReader = new AudioFileReader(filePath);
                 wasapiOut = new WasapiOut(AudioClientShareMode.Shared, false, 100);// 
-                                                                                   // AudioClientShareMode.Shared: 사운다 카드 공유모드 오디올르 자동으로 리샘프링한다. 
-                                                                                   // eventsync: 오디오 플레이하는 백그라운드 스레드 동작제어 , true 추가 오디오 원할 때 이벤트 수신, false 잠시 대기후 오디오 제공 
-                                                                                   // Latency 지연시간 
+                // AudioClientShareMode.Shared: 사운다 카드 공유모드 오디올르 자동으로 리샘프링한다. 
+                // eventsync: 오디오 플레이하는 백그라운드 스레드 동작제어 , true 추가 오디오 원할 때 이벤트 수신, false 잠시 대기후 오디오 제공 
+                // Latency 지연시간 
                 wasapiOut.Init(audioFileReader);
                 Console.WriteLine($"{NowProgram.ToString},{NowProgram.FilePath}");
 
@@ -654,6 +758,9 @@ namespace Apc_Sample
                 //MessageBox.Show(ex.Message);
             }
         }
+
+
+
         static void BusyWait(double milliseconds)
         {
             Stopwatch sw = Stopwatch.StartNew();
@@ -816,13 +923,13 @@ namespace Apc_Sample
         //}
 
 
-        public void ChangeFormat(string SDDT_BRDTIME)
+        public DateTime StringToDateTime(string SDDT_BRDTIME)
         {
             DateTime ProgramstartTime = DateTime.Today
             .AddHours(int.Parse(SDDT_BRDTIME.Substring(0, 2)))
             .AddMinutes(int.Parse(SDDT_BRDTIME.Substring(2, 2)))
             .AddSeconds(int.Parse(SDDT_BRDTIME.Substring(4, 2)));
-
+            return ProgramstartTime;
 
         }
         public void PlayMethod()
@@ -844,6 +951,11 @@ namespace Apc_Sample
             }
 
         }
+
+
+
+
+
 
     }
 }
