@@ -30,11 +30,11 @@ namespace Apc_Sample
 
         public ScheduleDetail NextProgram { get; set; }
 
-        private Stopwatch BroadCatsStarted = new Stopwatch();
         // 방송런타임 측정용 
         private int NowProRuntime;
         private int NowProBrdTime;
 
+        CachedSound NextPro;
 
 
 
@@ -66,7 +66,9 @@ namespace Apc_Sample
 
 
 
-        public delegate Task AsyncTestEvent(object sender, EventArgs e);
+        //public delegate Task AsyncTestEvent(object sender, EventArgs e);
+        public delegate Task AsyncTestEvent(object sender, AudioEventargs e);
+
 
         public event AsyncTestEvent AsyncSomething; //비동기 이벤트 핸들러 
 
@@ -108,9 +110,9 @@ namespace Apc_Sample
                         schedules = scheduleDetails;
                     }
 
-                    Thread.Sleep(1000);
+                   
                     Console.WriteLine("스케줄 가져오기 완료");
-
+                    Thread.Sleep(5000);
                 }
             }
         }
@@ -505,7 +507,7 @@ namespace Apc_Sample
                 Console.WriteLine($"{DateTime.Now:yyyy/MM/dd/fff}");
 
                 Console.WriteLine($"방송중인 프로그램 : {NowProgram?.SDDT_TITLE}");
-                Thread.Sleep(10000); // 더 정밀한 주기로 변경
+                Thread.Sleep(10000); // 주기 변경
 
             }
 
@@ -536,8 +538,8 @@ namespace Apc_Sample
                     TimeSpan time = new TimeSpan(0, 0, minutes, seconds);
 
 
-   
-                  
+
+
 
                     // 분 단위로 출력
                     double totalMinutes = Runtimespan.TotalMinutes;
@@ -559,23 +561,23 @@ namespace Apc_Sample
                         item.Now_Playing = false;
                     }
 
-                    if (NowProRuntime/1000 + NowProBrdTime == int.Parse(item.SDDT_BRDTIME))
+                    if (NowProRuntime / 1000 + NowProBrdTime == int.Parse(item.SDDT_BRDTIME))
                     {
                         NextProgram = item;
                         item.Now_Playing = false;
                     }
                 }
-                Console.WriteLine($"{DateTime.Now:yyyy/MM/dd/fff}");
+                Console.WriteLine($"{DateTime.Now:yyyy/MM/dd/ss/fff}");
 
                 Console.WriteLine($"방송중인 프로그램 : {NowProgram?.SDDT_TITLE}");
-                //Thread.Sleep(10000); // 더 정밀한 주기로 변경
+                Thread.Sleep(1000); // 더 정밀한 주기로 변경
 
             }
 
         }
 
 
-        public async Task WatchMethod()
+        public async Task WatchMethod()//원래꺼
         {
 
             Stopwatch WatchisWatch = new Stopwatch();
@@ -620,7 +622,9 @@ namespace Apc_Sample
                                 Console.WriteLine($"{WatchisWatch.ElapsedMilliseconds:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
                                 Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
 
-                                AsyncSomething?.Invoke(this, EventArgs.Empty);//이벤트 하나 더 
+                                //AsyncSomething?.Invoke(this, EventArgs.Empty);//이벤트 하나 더 
+                                //AsyncSomething?.Invoke(this, EventArgs.Empty);//이벤트 하나 더 
+
                                 break;
 
                             }
@@ -634,22 +638,31 @@ namespace Apc_Sample
 
             }
         }
+        //public int eventcount;
         public async Task WatchMethod11()
         {
 
             Stopwatch WatchisWatch = new Stopwatch();
 
-            Thread.Sleep(5000);// 첫시작 업데이트 기다리기
-
+            //Thread.Sleep(5000);// 첫시작 업데이트 기다리기
+            //WatchisWatch.Restart();
             while (true)
             {
-                // 비교는 now , next 시간을 비교해서 1ms 이하일때 
+                //Thread.Sleep(10);
+                if (/*50.0 < (NextProgram.StartTime - DateTime.Now).TotalMilliseconds &&*/ (NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 2000.0)
+                {
+                    //WatchisWatch.Restart();
+                    NextPro = new CachedSound(@"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201120000_녹음12.wav");
+                    Console.WriteLine( " ");
+                    //var NowPro = new CachedSound(@"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201220000_녹음22.wav");
+                }
+                //Console.WriteLine("---------");
+                //Thread.Sleep(10);
+                if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 1000.0)// 시작시간 50ms안으로 들어오면 1ms단위로 반복 
+                {
+                    //  
+                    // 미리 로드 
 
-
-                //Thread.Sleep(20);//20ms 
-                if ((NextProgram.StartTime - DateTime.Now).Milliseconds <= 50.0)// 시작시간 50ms안으로 들어오면 1ms단위로 반복 
-                {// 전체 재생시간이랑 현재 재생지점의 차이가 
-                    Thread.Sleep(50);
 
                     WatchisWatch.Restart();
                     long currentMs = 0;
@@ -660,24 +673,88 @@ namespace Apc_Sample
                         {
                             currentMs = WatchisWatch.ElapsedMilliseconds;
                             Console.WriteLine($"{currentMs}");
-                            // 스탑워치시간이랑 
-                            //if ((Math.Abs(NowProgram.actualElapsed.TotalMilliseconds - WatchisWatch.ElapsedMilliseconds) <= 1.0))
-                            if ((NextProgram.StartTime - DateTime.Now).Milliseconds <= 1.0)// 
-                            {
 
-                                Console.WriteLine($"{WatchisWatch.ElapsedMilliseconds:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
+                            if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 1000.0)// 
+                            {
                                 Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
 
-                                AsyncSomething?.Invoke(this, EventArgs.Empty);//
+                                //AsyncSomething?.Invoke(this, EventArgs.Empty);//
+                                AudioEventargs audioEventargs = new AudioEventargs();
+                                audioEventargs.CachedSound = NextPro;
+                                AsyncSomething?.Invoke(this, audioEventargs);//
+
+                                break;
+
+                            }
+                        }
+                        //Console.WriteLine($"1ms 루프 시간: {WatchisWatch.ElapsedMilliseconds}");//
+
+                    }
+                    break;
+
+                }
+                //Console.WriteLine($" watch {WatchisWatch.ElapsedMilliseconds}");//
+            }
+        }
+
+
+        public async Task WatchMethod_Cached()
+        {
+
+            Stopwatch WatchisWatch = new Stopwatch();
+
+            //Thread.Sleep(5000);// 첫시작 업데이트 기다리기
+
+            while (true)
+            {
+                Thread.Sleep(1000);
+                if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 180.0)
+                {
+                    NextPro = new CachedSound(@"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201120000_녹음12.wav");
+
+                    //var NowPro = new CachedSound(@"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201220000_녹음22.wav");
+                    // 여기서 로드하면 지연되겠지  
+                }
+
+
+
+                if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 50.0)// 시작시간 50ms안으로 들어오면 1ms단위로 반복 
+                {
+                    //  
+                    // 미리 로드 
+
+
+                    WatchisWatch.Restart();
+                    long currentMs = 0;
+                    while (true)
+                    {
+
+                        if (WatchisWatch.ElapsedMilliseconds > currentMs)
+                        {
+                            currentMs = WatchisWatch.ElapsedMilliseconds;
+                            Console.WriteLine($"{currentMs}");
+
+                            if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 1.0)// 
+                            {
+                                Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
+                                AudioEventargs audioEventargs = new AudioEventargs();
+                                audioEventargs.CachedSound = NextPro;
+                                AsyncSomething?.Invoke(this, audioEventargs);//
+
+                                //AsyncSomething?.Invoke(this, EventArgs.Empty);//
+
                                 break;
 
                             }
                         }
                     }
+                    break;
+
                 }
             }
         }
-        public async Task WatchMethod1()
+
+        public async Task WatchMethod1()// 원래 꺼 
         {
             Thread.Sleep(3000);
             while (true)
@@ -703,7 +780,7 @@ namespace Apc_Sample
                             if (delta <= 1.0)
                             {
                                 // 정확한 타이밍 도달
-                                await AsyncSomething?.Invoke(this, EventArgs.Empty);
+                                //await AsyncSomething?.Invoke(this, EventArgs.Empty);
                                 break;
                             }
 
@@ -725,9 +802,8 @@ namespace Apc_Sample
 
         public void WasapiPlay()
         {
-            // 오디오 파일이 다음 파일이랑 매핑이 
             filePath = @"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201120000_녹음12.wav";
-            string NextProgramFilePath = @"""C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201220000_녹음22.wav""";
+            string NextProgramFilePath = @"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201220000_녹음22.wav";
             try
             {
                 if (wasapiOut != null && wasapiOut.PlaybackState == PlaybackState.Playing)// 
@@ -735,19 +811,15 @@ namespace Apc_Sample
                     wasapiOut.Stop();
                 }
 
-                //if (wasapiOut == null)
-                //{
-
-                audioFileReader = new AudioFileReader(filePath);
-                wasapiOut = new WasapiOut(AudioClientShareMode.Shared, false, 100);// 
+                audioFileReader = new AudioFileReader(filePath); // 로드 
+                wasapiOut = new WasapiOut(AudioClientShareMode.Shared, false, 100);// 출력 설정 
                 // AudioClientShareMode.Shared: 사운다 카드 공유모드 오디올르 자동으로 리샘프링한다. 
                 // eventsync: 오디오 플레이하는 백그라운드 스레드 동작제어 , true 추가 오디오 원할 때 이벤트 수신, false 잠시 대기후 오디오 제공 
                 // Latency 지연시간 
                 wasapiOut.Init(audioFileReader);
-                Console.WriteLine($"{NowProgram.ToString},{NowProgram.FilePath}");
+                Console.WriteLine($"{NowProgram.SDDT_TITLE}, {NowProgram.FilePath}");
 
 
-                //}
                 wasapiOut?.Play();
 
 
@@ -758,7 +830,32 @@ namespace Apc_Sample
                 //MessageBox.Show(ex.Message);
             }
         }
+        public void AudioPlaySample()
+        {
+            filePath = @"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201120000_녹음12.wav";
+            string NextProgramFilePath = @"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201220000_녹음22.wav";
 
+
+            try
+            {
+                using (var audioFile = new AudioFileReader(filePath))
+                using (var outputDevice = new WasapiOut())
+                {
+                    outputDevice.Init(audioFile);
+                    outputDevice.Play();
+                    while (outputDevice.PlaybackState == PlaybackState.Playing)
+                    {
+                        Thread.Sleep(1000);
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+
+
+            }
+        }
 
 
         static void BusyWait(double milliseconds)
@@ -904,23 +1001,7 @@ namespace Apc_Sample
             Thread.Sleep(10000);
 
         }
-        //public void TirggeredEvent(object sender, EventArgs e)
-        //{
-        //    Console.WriteLine("press 'a' key to increase total");
-        //    while (Console.ReadKey(true).KeyChar == 'a')
-        //    {
-        //        //Console.WriteLine("Press "A" ");
-        //        if (this.apcEventHandler != null)
-        //        {
-        //            // 이벤트핸들러들을 호출
-        //            apcEventHandler(this, EventArgs.Empty);
-        //        }
-        //        //Thread.Sleep(15000);
 
-        //    }
-
-        //    //}
-        //}
 
 
         public DateTime StringToDateTime(string SDDT_BRDTIME)
@@ -933,28 +1014,21 @@ namespace Apc_Sample
 
         }
         public void PlayMethod()
-        // 시점이 변경될 때 
+        // 이벤트
         {
-            string audioFileName = "";
-            using (var audioFile = new AudioFileReader(audioFileName))
-            using (var outputDevice = new WasapiOut(AudioClientShareMode.Shared, false, 100))
-            {
+            var zap = new CachedSound("zap.wav");
+            var boom = new CachedSound("boom.wav");
 
-                outputDevice.Init(audioFile);
-                outputDevice.Play();
-                while (outputDevice.PlaybackState == PlaybackState.Playing)
-                {
-                    Thread.Sleep(1000);
-                }
-
-
-            }
 
         }
+        AudioPlaybackEngine audioPlaybackEngine = new AudioPlaybackEngine();
 
 
+        public class AudioEventargs : EventArgs
+        {
+            public CachedSound CachedSound { get; set; }
 
-
+        }
 
 
     }
