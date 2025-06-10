@@ -75,9 +75,8 @@ namespace Apc_Sample
                     //AudioPlayer.RemoveMixerInput(new CachedSoundSampleProvider(NowProgram));
                     // Isampleprovider를 전달한다는게 오디오 파일 ㅊ자체를 전달한다는게 아니다 .
                     AudioPlayer.PlaySound(cachedSound);
+                    // 이벤트 발생 횟수 통제 해야함 
                     //AudioPlaybackEngine.Instance.PlaySound();
-                    // 이벤트를 전달해서 처리, 아니면 자체에서 처리 
-                    // 다른 스레드에서 작업 시작
                     Task.Run(() => { apcSampleClass.EventMethhod(); });
 
                 }

@@ -34,9 +34,9 @@ namespace Apc_Sample
         private int NowProRuntime;
         private int NowProBrdTime;
 
-        CachedSound NextPro;
+        CachedSound NextcachedSound;
 
-
+        CachedSound NowcachedSound;
 
         private EventHandler apcEventHandler;
         public event EventHandler APCEventHandler
@@ -588,13 +588,13 @@ namespace Apc_Sample
             while (true)
             {
                 //var NowNow = DateTime.Now;
-                if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 5000.0 && isLoaded == false)
+                if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 10000.0 && isLoaded == false)
                 {
                     isLoaded = true;
                     //Task.Run(async () =>
                     //{
 
-                        NextPro =  new CachedSound(@"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201120000_녹음12.wav");
+                        NextcachedSound =  new CachedSound(@"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201120000_녹음12.wav");
 
                     //});
                     // 이게 지연을 시켜버리면 건너 뛰어 버릴 수 있어 
@@ -619,13 +619,13 @@ namespace Apc_Sample
                                 Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
 
                                 //AsyncSomething?.Invoke(this, EventArgs.Empty);//
-                                AudioEventargs NextaudioEventargs = new AudioEventargs();
-                                AudioEventargs NowaudioEventargs = new AudioEventargs();
+                                AudioEventargs audioEventargs = new AudioEventargs();
+                                //AudioEventargs NowaudioEventargs = new AudioEventargs();
 
-                                NowaudioEventargs.NowCachedProgram = NextPro;
-                                // 
-                                NextaudioEventargs.NextProgram = NextPro;
-                                AsyncSomething?.Invoke(this, NextaudioEventargs);//
+                                audioEventargs.NowCachedProgram = NowcachedSound;
+                                //현재 프로그램을 담아 놓고 잇어야하는데 
+                                audioEventargs.NextProgram = NextcachedSound;
+                                AsyncSomething?.Invoke(this, audioEventargs);//
 
                                 return;
                                 //break;
@@ -638,61 +638,7 @@ namespace Apc_Sample
         }
 
 
-        public async Task WatchMethod_Cached()
-        {
-
-            Stopwatch WatchisWatch = new Stopwatch();
-
-            //Thread.Sleep(5000);// 첫시작 업데이트 기다리기
-
-            while (true)
-            {
-                Thread.Sleep(1000);
-                if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 180.0)
-                {
-                    NextPro = new CachedSound(@"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201120000_녹음12.wav");
-
-                    //var NowPro = new CachedSound(@"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201220000_녹음22.wav");
-                    // 여기서 로드하면 지연되겠지  
-                }
-
-
-
-                if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 50.0)// 시작시간 50ms안으로 들어오면 1ms단위로 반복 
-                {
-                    //  
-                    // 미리 로드 
-
-
-                    WatchisWatch.Restart();
-                    long currentMs = 0;
-                    while (true)
-                    {
-
-                        if (WatchisWatch.ElapsedMilliseconds > currentMs)
-                        {
-                            currentMs = WatchisWatch.ElapsedMilliseconds;
-                            Console.WriteLine($"{currentMs}");
-
-                            if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 1.0)// 
-                            {
-                                Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
-                                AudioEventargs audioEventargs = new AudioEventargs();
-                                audioEventargs.CachedSound = NextPro;
-                                AsyncSomething?.Invoke(this, audioEventargs);//
-
-                                //AsyncSomething?.Invoke(this, EventArgs.Empty);//
-
-                                break;
-
-                            }
-                        }
-                    }
-                    break;
-
-                }
-            }
-        }
+        
 
         public async Task WatchMethod1()// 원래 꺼 
         {
