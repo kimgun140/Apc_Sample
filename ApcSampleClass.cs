@@ -560,16 +560,12 @@ namespace Apc_Sample
                     {
                         item.Now_Playing = false;
                     }
-                    //if (NowProRuntime / 1000 + NowProBrdTime == int.Parse(item.SDDT_BRDTIME))
-                    if (NowProgram != null)
+
+                    if (NowProRuntime / 1000 + NowProBrdTime == int.Parse(item.SDDT_BRDTIME))
+                    // 현재 방송 프로그램  시작시간 + 런타임 == 다음 프로그램 시작 시간 
                     {
-                        int convertedRuntime = ConvertRuntimeToMilliseconds(NowProgram.SDDT_RUNTIME);
-                        DateTime expectedNext = StringToDateTime(NowProgram.SDDT_BRDTIME).AddMilliseconds(convertedRuntime);
-                        if (expectedNext == item.StartTime)
-                        {
-                            NextProgram = item;
-                            item.Now_Playing = false;
-                        }
+                        NextProgram = item;
+                        item.Now_Playing = false;
                     }
                 }
                 Console.WriteLine($"{DateTime.Now:yyyy/MM/dd/ss/fff}");
@@ -582,145 +578,62 @@ namespace Apc_Sample
         }
 
 
-        public async Task WatchMethod()//원래꺼
+
+        public async Task EventMethhod()
         {
 
             Stopwatch WatchisWatch = new Stopwatch();
-
-            Thread.Sleep(3000);// 첫시작 업데이트 기다리기
+            bool isLoaded = false;
 
             while (true)
             {
-                // 비교는 now , next 시간을 비교해서 1ms 이하일때 
-                var runtimeMilliSec0 = ConvertRuntimeToMilliseconds(NowProgram.SDDT_RUNTIME);// 스트링 밀리세컨드로 변환
-                TimeSpan runtime0 = TimeSpan.FromMilliseconds(runtimeMilliSec0);
-                DateTime endTime0 = NowProgram.StartTime.Add(runtime0);
-                TimeSpan alreadyElapsed0 = DateTime.Now - NowProgram.StartTime;
-                NowProgram.actualElapsed = alreadyElapsed0 + WatchisWatch.Elapsed;
+                //var NowNow = DateTime.Now;
+                if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 5000.0 && isLoaded == false)
+                {
+                    isLoaded = true;
+                    //Task.Run(async () =>
+                    //{
 
-                //Thread.Sleep(20);//20ms 
-                if (Math.Abs(NowProgram.actualElapsed.TotalMilliseconds - NowProgram.runtimeMilliSec) <= 0.05)// 시작시간 50ms안으로 들어오면 1ms단위로 반복 
-                {// 전체 재생시간이랑 현재 재생지점의 차이가 
-                    Thread.Sleep(50);
+                        NextPro =  new CachedSound(@"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201120000_녹음12.wav");
 
+                    //});
+                    // 이게 지연을 시켜버리면 건너 뛰어 버릴 수 있어 
+                    Console.WriteLine(" Load");
+                    //var NowPro = new CachedSound(@"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201220000_녹음22.wav");
+                }
+                if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 50.0)// 시작시간 50ms안으로 들어오면 1ms단위로 반복 
+                {
                     WatchisWatch.Restart();
                     long currentMs = 0;
                     while (true)
                     {
-
-                        runtimeMilliSec0 = ConvertRuntimeToMilliseconds(NowProgram.SDDT_RUNTIME);// 스트링 밀리세컨드로 변환
-                        runtime0 = TimeSpan.FromMilliseconds(runtimeMilliSec0);
-                        endTime0 = NowProgram.StartTime.Add(runtime0);
-                        alreadyElapsed0 = DateTime.Now - NowProgram.StartTime;
-                        NowProgram.actualElapsed = alreadyElapsed0 + WatchisWatch.Elapsed;
 
                         if (WatchisWatch.ElapsedMilliseconds > currentMs)
                         {
                             currentMs = WatchisWatch.ElapsedMilliseconds;
                             Console.WriteLine($"{currentMs}");
-                            // 스탑워치시간이랑 
-                            //if ((Math.Abs(NowProgram.actualElapsed.TotalMilliseconds - WatchisWatch.ElapsedMilliseconds) <= 1.0))
-                            if ((Math.Abs(NowProgram.actualElapsed.TotalMilliseconds - NowProgram.runtimeMilliSec) <= 1.0))// NowProgram.actualElapsed이거 업데이트가 늦는데 
+
+                            //if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 1.0)// 
+                            if (currentMs >= 1.0)// 
                             {
-                                //if ((Math.Abs(NowProgram.actualElapsed.TotalMilliseconds - NowProgram.runtimeMilliSec) <= 1.0))
-                                //    {
-                                Console.WriteLine($"{WatchisWatch.ElapsedMilliseconds:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
                                 Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
 
-                                //AsyncSomething?.Invoke(this, EventArgs.Empty);//이벤트 하나 더 
-                                //AsyncSomething?.Invoke(this, EventArgs.Empty);//이벤트 하나 더 
+                                //AsyncSomething?.Invoke(this, EventArgs.Empty);//
+                                AudioEventargs NextaudioEventargs = new AudioEventargs();
+                                AudioEventargs NowaudioEventargs = new AudioEventargs();
 
-                                break;
+                                NowaudioEventargs.NowCachedProgram = NextPro;
+                                // 
+                                NextaudioEventargs.NextProgram = NextPro;
+                                AsyncSomething?.Invoke(this, NextaudioEventargs);//
 
+                                return;
+                                //break;
                             }
                         }
                     }
+                    //break;
                 }
-                // 보장시간 10-15ms
-
-
-                //Thread.Sleep(50);
-
-            }
-        }
-        //public int eventcount;
-        public async Task WatchMethod11()
-        {
-
-            Stopwatch WatchisWatch = new Stopwatch();
-
-            //Thread.Sleep(5000);// 첫시작 업데이트 기다리기
-            //WatchisWatch.Restart();
-            while (true)
-            {
-                //Thread.Sleep(10);
-                if (/*50.0 < (NextProgram.StartTime - DateTime.Now).TotalMilliseconds &&*/ (NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 200.0)
-                {
-                    //WatchisWatch.Restart();
-                    NextPro = new CachedSound(@"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201120000_녹음12.wav");
-                    Console.WriteLine(" ");
-                    //var NowPro = new CachedSound(@"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201220000_녹음22.wav");
-                }
-                //Console.WriteLine("---------");
-                //Thread.Sleep(10);
-                //if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 50.0)// 시작시간 50ms안으로 들어오면 1ms단위로 반복 
-                //{
-                //    //  
-                //    // 미리 로드 
-
-
-                //    WatchisWatch.Restart();
-                //    long currentMs = 0;
-                //    while (true)
-                //    {
-
-                //        if (WatchisWatch.ElapsedMilliseconds > currentMs)
-                //        {
-                //            currentMs = WatchisWatch.ElapsedMilliseconds;
-                //            Console.WriteLine($"{currentMs}");
-
-                //            if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 1.0)// 
-                //            {
-                //                Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
-
-                //                //AsyncSomething?.Invoke(this, EventArgs.Empty);//
-                //                AudioEventargs audioEventargs = new AudioEventargs();
-                //                audioEventargs.CachedSound = NextPro;
-                //                AsyncSomething?.Invoke(this, audioEventargs);//
-
-                //                break;
-
-                //            }
-                //        }
-                //        //Console.WriteLine($"1ms 루프 시간: {WatchisWatch.ElapsedMilliseconds}");//
-
-                //    }
-                //    break;
-
-                //}
-                if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 50.0)
-                {
-                    WatchisWatch.Restart();
-                    long currentMs = 0;
-                    while (true)
-                    {
-                        if (WatchisWatch.ElapsedMilliseconds > currentMs)
-                        {
-                            currentMs = WatchisWatch.ElapsedMilliseconds;
-
-                            if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 1.0)
-                            {
-                                // 방송 시작 이벤트 발생
-                                AudioEventargs audioEventargs = new AudioEventargs();
-                                audioEventargs.CachedSound = NextPro;
-                                AsyncSomething?.Invoke(this, audioEventargs);
-                                break;
-                            }
-                        }
-                    }
-                    break;
-                }
-                //Console.WriteLine($" watch {WatchisWatch.ElapsedMilliseconds}");//
             }
         }
 
@@ -917,7 +830,6 @@ namespace Apc_Sample
         }
 
 
-
         //public event AsyncAPCEventHandler2 AsyncTriggerEvent3;
 
 
@@ -1043,18 +955,21 @@ namespace Apc_Sample
         public void PlayMethod()
         // 이벤트
         {
-            var zap = new CachedSound("zap.wav");
-            var boom = new CachedSound("boom.wav");
+            IWaveProvider waveProvider = null;
 
 
         }
-        AudioPlaybackEngine audioPlaybackEngine = new AudioPlaybackEngine();
+
 
 
         public class AudioEventargs : EventArgs
         {
-            public CachedSound CachedSound { get; set; }
+            public CachedSound NowCachedProgram { get; set; }
+            public CachedSound NextProgram { get; set; }
+            public CachedSound BeforeProgram { get; set; }
 
+
+            public ISampleProvider SampleProvider { get; set; }
         }
 
 

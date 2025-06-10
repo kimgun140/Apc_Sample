@@ -1,4 +1,6 @@
-﻿using System.ComponentModel;
+﻿using NAudio.Wave.SampleProviders;
+using NAudio.Wave;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
@@ -10,8 +12,9 @@ namespace Apc_Sample
     {
         static void Main(string[] args)
         {
-            int eventcount = 0;
-
+     
+            AudioPlaybackEngine AudioPlayer = new AudioPlaybackEngine(44100, 2);
+            
             ApcSampleClass apcSampleClass = new ApcSampleClass();
 
 
@@ -37,7 +40,7 @@ namespace Apc_Sample
             Thread WatchThread = new Thread(() =>
             {
                 //apcSampleClass.WatchMethod();
-                apcSampleClass.WatchMethod11();
+                apcSampleClass.EventMethhod();
 
             }
             );
@@ -63,21 +66,25 @@ namespace Apc_Sample
                 // 
                 {
                     //await apcSampleClass.ScheduleLoadWithArg(sender, EventArgs.Empty); // 이벤트 
-                    //eventcount++;
-                    //apcSampleClass.WasapiPlay();
-                    CachedSound cachedSound = e.CachedSound;
-                    AudioPlaybackEngine.Instance.PlaySound(cachedSound);
 
+                    CachedSound cachedSound = e.NextProgram;
+                    // 이벤트에 현재꺼 다음거는 최소한 전달을해야한다. 
+                    // 오디오를 제거하고, 다음거 추가
+                    // or 전부다 삭제하고 다음꺼를 추가하기 
+
+                    //AudioPlayer.RemoveMixerInput(new CachedSoundSampleProvider(NowProgram));
+                    // Isampleprovider를 전달한다는게 오디오 파일 ㅊ자체를 전달한다는게 아니다 .
+                    AudioPlayer.PlaySound(cachedSound);
                     //AudioPlaybackEngine.Instance.PlaySound();
                     // 이벤트를 전달해서 처리, 아니면 자체에서 처리 
                     // 다른 스레드에서 작업 시작
-                    Task.Run(() => { apcSampleClass.WatchMethod11(); });
+                    Task.Run(() => { apcSampleClass.EventMethhod(); });
 
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex);
-                    Task.Run(() => { apcSampleClass.WatchMethod11(); });
+                    Task.Run(() => { apcSampleClass.EventMethhod(); });
                 }
 
             };

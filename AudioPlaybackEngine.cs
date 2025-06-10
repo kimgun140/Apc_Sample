@@ -11,32 +11,33 @@ namespace Apc_Sample
 {
     class AudioPlaybackEngine : IDisposable
     {
+        //private readonly List<ISampleProvider> sources;
+
         private readonly IWavePlayer outputDevice;
         private readonly MixingSampleProvider mixer;
 
-
-        public AudioPlaybackEngine(int SampleRate = 44100, int ChannedlCount = 2)
+        public AudioPlaybackEngine(int sampleRate = 44100, int channelCount = 2)
         {
-            outputDevice = new WaveOutEvent();
-            mixer = new MixingSampleProvider(WaveFormat.CreateIeeeFloatWaveFormat(SampleRate, ChannedlCount));
-            mixer.ReadFully = true;
+            //sources = new List<ISampleProvider>();
 
+
+            outputDevice = new WaveOutEvent();
+            mixer = new MixingSampleProvider(WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, channelCount));
+            mixer.ReadFully = true;
             outputDevice.Init(mixer);
             outputDevice.Play();
         }
-        public void PlaySound(CachedSound sound)
-        {
-            AddMixerInput(new CachedSoundSampleProvider(sound));
+        public void RemoveMixerInput(ISampleProvider mixerInput)
+        {// source에 스레드가 동시에 접근을 하나? 
+            // 제거를 넣으려면 
+                 mixer.RemoveMixerInput(mixerInput);
         }
-        public void PlaySound(string FileName)
+        public void PlaySound(string fileName)
         {
-            var input = new AudioFileReader(FileName);
+            var input = new AudioFileReader(fileName);
             AddMixerInput(new AutoDisposeFileReader(input));
         }
-        private void AddMixerInput(ISampleProvider input)
-        {
-            mixer.AddMixerInput(ConvertToRightChannelCount(input));
-        }
+
         private ISampleProvider ConvertToRightChannelCount(ISampleProvider input)
         {
             if (input.WaveFormat.Channels == mixer.WaveFormat.Channels)
@@ -49,10 +50,25 @@ namespace Apc_Sample
             }
             throw new NotImplementedException("Not yet implemented this channel count conversion");
         }
+
+        public void PlaySound(CachedSound sound)
+        {
+            AddMixerInput(new CachedSoundSampleProvider(sound));
+        }
+
+        private void AddMixerInput(ISampleProvider input)
+        {
+            mixer.AddMixerInput(ConvertToRightChannelCount(input));
+            // ConvertToRightChannelCount에서 input의 channel이 mixer의 채널이랑 같은지 비교 
+            //MixingSampleProvider의 AddMixerInput가 source리스트에 add()
+            //mixer.remove() 하려면 그대로
+        }
+
         public void Dispose()
         {
             outputDevice.Dispose();
         }
+
         public static readonly AudioPlaybackEngine Instance = new AudioPlaybackEngine(44100, 2);
     }
     class AutoDisposeFileReader : ISampleProvider
@@ -83,8 +99,8 @@ namespace Apc_Sample
         }
 
     }
-    public class CachedSound
-    // 오디오 파일 미리 로드 
+    public class CachedSound 
+    //리샘플링 과정의 성능저하를 줄이게 만든 별도 
     {
         public float[] AudioData { get; private set; }
         public WaveFormat WaveFormat { get; private set; }
