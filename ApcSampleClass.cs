@@ -110,7 +110,7 @@ namespace Apc_Sample
                         schedules = scheduleDetails;
                     }
 
-                   
+
                     Console.WriteLine("스케줄 가져오기 완료");
                     Thread.Sleep(5000);
                 }
@@ -560,11 +560,16 @@ namespace Apc_Sample
                     {
                         item.Now_Playing = false;
                     }
-
-                    if (NowProRuntime / 1000 + NowProBrdTime == int.Parse(item.SDDT_BRDTIME))
+                    //if (NowProRuntime / 1000 + NowProBrdTime == int.Parse(item.SDDT_BRDTIME))
+                    if (NowProgram != null)
                     {
-                        NextProgram = item;
-                        item.Now_Playing = false;
+                        int convertedRuntime = ConvertRuntimeToMilliseconds(NowProgram.SDDT_RUNTIME);
+                        DateTime expectedNext = StringToDateTime(NowProgram.SDDT_BRDTIME).AddMilliseconds(convertedRuntime);
+                        if (expectedNext == item.StartTime)
+                        {
+                            NextProgram = item;
+                            item.Now_Playing = false;
+                        }
                     }
                 }
                 Console.WriteLine($"{DateTime.Now:yyyy/MM/dd/ss/fff}");
@@ -649,49 +654,71 @@ namespace Apc_Sample
             while (true)
             {
                 //Thread.Sleep(10);
-                if (/*50.0 < (NextProgram.StartTime - DateTime.Now).TotalMilliseconds &&*/ (NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 2000.0)
+                if (/*50.0 < (NextProgram.StartTime - DateTime.Now).TotalMilliseconds &&*/ (NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 200.0)
                 {
                     //WatchisWatch.Restart();
                     NextPro = new CachedSound(@"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201120000_녹음12.wav");
-                    Console.WriteLine( " ");
+                    Console.WriteLine(" ");
                     //var NowPro = new CachedSound(@"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201220000_녹음22.wav");
                 }
                 //Console.WriteLine("---------");
                 //Thread.Sleep(10);
-                if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 1000.0)// 시작시간 50ms안으로 들어오면 1ms단위로 반복 
+                //if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 50.0)// 시작시간 50ms안으로 들어오면 1ms단위로 반복 
+                //{
+                //    //  
+                //    // 미리 로드 
+
+
+                //    WatchisWatch.Restart();
+                //    long currentMs = 0;
+                //    while (true)
+                //    {
+
+                //        if (WatchisWatch.ElapsedMilliseconds > currentMs)
+                //        {
+                //            currentMs = WatchisWatch.ElapsedMilliseconds;
+                //            Console.WriteLine($"{currentMs}");
+
+                //            if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 1.0)// 
+                //            {
+                //                Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
+
+                //                //AsyncSomething?.Invoke(this, EventArgs.Empty);//
+                //                AudioEventargs audioEventargs = new AudioEventargs();
+                //                audioEventargs.CachedSound = NextPro;
+                //                AsyncSomething?.Invoke(this, audioEventargs);//
+
+                //                break;
+
+                //            }
+                //        }
+                //        //Console.WriteLine($"1ms 루프 시간: {WatchisWatch.ElapsedMilliseconds}");//
+
+                //    }
+                //    break;
+
+                //}
+                if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 50.0)
                 {
-                    //  
-                    // 미리 로드 
-
-
                     WatchisWatch.Restart();
                     long currentMs = 0;
                     while (true)
                     {
-
                         if (WatchisWatch.ElapsedMilliseconds > currentMs)
                         {
                             currentMs = WatchisWatch.ElapsedMilliseconds;
-                            Console.WriteLine($"{currentMs}");
 
-                            if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 1000.0)// 
+                            if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 1.0)
                             {
-                                Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} - 방송 시작 이벤트 발생");
-
-                                //AsyncSomething?.Invoke(this, EventArgs.Empty);//
+                                // 방송 시작 이벤트 발생
                                 AudioEventargs audioEventargs = new AudioEventargs();
                                 audioEventargs.CachedSound = NextPro;
-                                AsyncSomething?.Invoke(this, audioEventargs);//
-
+                                AsyncSomething?.Invoke(this, audioEventargs);
                                 break;
-
                             }
                         }
-                        //Console.WriteLine($"1ms 루프 시간: {WatchisWatch.ElapsedMilliseconds}");//
-
                     }
                     break;
-
                 }
                 //Console.WriteLine($" watch {WatchisWatch.ElapsedMilliseconds}");//
             }
