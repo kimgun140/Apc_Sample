@@ -12,14 +12,13 @@ namespace Apc_Sample
     {
         static void Main(string[] args)
         {
-     
+
             AudioPlaybackEngine AudioPlayer = new AudioPlaybackEngine(44100, 2);
-            
+
             ApcSampleClass apcSampleClass = new ApcSampleClass();
 
 
-            DateTime lastInvokeTime = DateTime.MinValue;
-            TimeSpan throttleInterval = TimeSpan.FromMilliseconds(1000);// 
+
 
 
 
@@ -39,51 +38,68 @@ namespace Apc_Sample
 
             Thread WatchThread = new Thread(() =>
             {
-                //apcSampleClass.WatchMethod();
-                apcSampleClass.EventMethhod();
-
+                apcSampleClass.EventMethod();
+                //apcSampleClass.EventMethhod123();
             }
             );
             Thread.Sleep(5000);
             WatchThread.Start();
+            //WatchThread.
             //apcSampleClass.AsyncSomething += async (sender, AudioEventargs) =>
+            var eventcount = 0;
+            var eventcount1 = 0;
+
+            DateTime lastInvokeTime = DateTime.MinValue;
+            TimeSpan throttleInterval = TimeSpan.FromMilliseconds(1000);// 
+
 
             apcSampleClass.AsyncSomething += async (sender, e) =>
             {
+                eventcount++;
                 var now = DateTime.Now;
-
-                if ((now - lastInvokeTime) < throttleInterval)
+                bool eventflag = false;
+                var eventflag1 = 0;
+                if ((now - lastInvokeTime) > throttleInterval)
                 {
-                    // 간격 안쪽에 발생한 이벤트는 무시 /
+                    lastInvokeTime = now;
+
+                    eventflag = true;
+                    // 간격 안쪽에 발생한 이벤트는 무시 
                     return;
                 }
-
+                Console.WriteLine($"now: {now}, lastInvokeTime: {lastInvokeTime}, diff: {now - lastInvokeTime}, ThreadId:{Thread.CurrentThread.ManagedThreadId}");
+                eventcount1++;
                 lastInvokeTime = now;
 
-                //이벤트 발생
-
                 try
-                // 
                 {
-                    //await apcSampleClass.ScheduleLoadWithArg(sender, EventArgs.Empty); // 이벤트 
-
                     CachedSound cachedSound = e.NextProgram;
-                    // 이벤트에 현재꺼 다음거는 최소한 전달을해야한다. 
-                    // 오디오를 제거하고, 다음거 추가
-                    // or 전부다 삭제하고 다음꺼를 추가하기 
-
+                    CachedSoundSampleProvider cachedSoundSampleProvider = new CachedSoundSampleProvider(cachedSound);
                     //AudioPlayer.RemoveMixerInput(new CachedSoundSampleProvider(NowProgram));
-                    // Isampleprovider를 전달한다는게 오디오 파일 ㅊ자체를 전달한다는게 아니다 .
+                    var plz = AudioPlayer.ConvertToRightChannelCount(cachedSoundSampleProvider);
+
+                    AudioPlayer.RemoveMixerInput(plz);
+
                     AudioPlayer.PlaySound(cachedSound);
-                    // 이벤트 발생 횟수 통제 해야함 
-                    //AudioPlaybackEngine.Instance.PlaySound();
-                    Task.Run(() => { apcSampleClass.EventMethhod(); });
+
+                    AudioPlayer.RemoveMixerInput(plz);
+
+                    //AudioPlayer.mixer.RemoveMixerInput(cachedSoundSampleProvider);
+                    //AudioPlayer.RemoveMixerInput(cachedSoundSampleProvider);
+
+                    await Task.Delay(5000);
+                    Task.Run(() =>
+                    {
+                        apcSampleClass.EventMethod();
+                    });
+                    //Task.Run(() => { apcSampleClass.EventMethhod123(); });
 
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex);
-                    Task.Run(() => { apcSampleClass.EventMethhod(); });
+                    //Task.Run(() => { apcSampleClass.EventMethod(); });
+                    //Task.Run(() => { apcSampleClass.EventMethhod123(); });
                 }
 
             };
