@@ -30,10 +30,6 @@ namespace Apc_Sample
 
         public ScheduleDetail NextProgram { get; set; }
 
-        // 방송런타임 측정용 
-        private int NowProRuntime;
-        private int NowProBrdTime;
-
         CachedSound NextcachedSound;
 
         CachedSound NowcachedSound;
@@ -73,14 +69,15 @@ namespace Apc_Sample
         public event AsyncTestEvent AsyncSomething; //비동기 이벤트 핸들러 
 
         public void ScheduleLoad()
-        // 스케줄 로드 스레드 1초마다 
+        // 스케줄 로드  
         {
             string ConnectionString = "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=192.168.1.245)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=oras)));User Id=WINNERS;Password=WINNERS009;";
 
             using (var conn = new OracleConnection(ConnectionString))
             {
                 conn.Open();
-                string querry = $"SELECT * FROM SCHEDAYDETAIL WHERE SDDT_SCDYDATE = '20250515'";
+                //string querry = $"SELECT * FROM SCHEDAYDETAIL WHERE SDDT_SCDYDATE = '20250515'";
+                string querry = $" SELECT * FROM SCHEDAYDETAIL WHERE SDDT_SCDYDATE = '20250515' ORDER BY SDDT_NUM";
                 while (true)
                 {
                     Console.WriteLine("스케줄 로드 시작");
@@ -103,11 +100,14 @@ namespace Apc_Sample
                                 scheduleDayDetail.SDDT_SCDYDATE = reader["SDDT_SCDYDATE"].ToString();
                                 scheduleDayDetail.SDDT_BRDTIME = reader["SDDT_BRDTIME"].ToString();
                                 scheduleDayDetail.SDDT_TITLE = reader["SDDT_TITLE"].ToString();
+                                scheduleDayDetail.SDDT_NUM = Convert.ToInt32(reader["SDDT_NUM"]);
 
                                 scheduleDetails.Add(scheduleDayDetail);
                             }
                         }
                         schedules = scheduleDetails;
+                        //schedules = scheduleDetails;
+
                     }
 
                     Console.WriteLine("스케줄 가져오기 완료");
@@ -117,21 +117,14 @@ namespace Apc_Sample
         }
 
 
-
-
-
-
-
-
-
-
-        public async Task NewCursorCheck_Print11()//스케줄 데이터 업데이트
+        public async Task CursorMethod()//스케줄 데이터 업데이트
         {
 
             //Stopwatch Teststopwatch = Stopwatch.StartNew();
 
             while (true)
             {
+                int schedulesCount = 0;
 
                 if (schedules.Count == 0)
                 {
@@ -140,6 +133,7 @@ namespace Apc_Sample
                 }
                 foreach (var item in schedules)
                 {
+
                     var runtime = double.Parse(item.SDDT_RUNTIME); // 예: "11000" 밀리세컨드
                     var runtime1 = int.Parse(item.SDDT_RUNTIME); // 예: "11000" 밀리세컨드
 
@@ -149,41 +143,32 @@ namespace Apc_Sample
                     int seconds = (runtime1 / 1000) % 100;
                     TimeSpan time = new TimeSpan(0, 0, minutes, seconds);
 
-
-
-
-
                     // 분 단위로 출력
                     double totalMinutes = Runtimespan.TotalMinutes;
                     var StratTime = StringToDateTime(item.SDDT_BRDTIME);
-                    //var EndTime = StratTime + Runtimespan;
                     var EndTime = StratTime + time;
 
                     if (DateTime.Now >= item.StartTime && DateTime.Now < EndTime)
                     {
                         item.Now_Playing = true;
                         NowProgram = item;
-                        NowProRuntime = int.Parse(item.SDDT_RUNTIME);
-                        NowProBrdTime = int.Parse(item.SDDT_BRDTIME);
-
+                        NextProgram = schedules[schedulesCount + 1];//이거이거
+                        //+1
                     }
-
                     else
                     {
                         item.Now_Playing = false;
                     }
 
-                    if (NowProRuntime / 1000 + NowProBrdTime == int.Parse(item.SDDT_BRDTIME))
-                    // 현재 방송 프로그램  시작시간 + 런타임 == 다음 프로그램 시작 시간 
-                    {
-                        NextProgram = item;
-                        item.Now_Playing = false;
-                    }
+
+
+                    schedulesCount++;
                 }
-                Console.WriteLine($"{DateTime.Now:yyyy/MM/dd/ss/fff}");
+                Console.WriteLine($"{DateTime.Now:yyyy/MM/dd/mm/ss/fff}");
 
                 Console.WriteLine($"방송중인 프로그램 : {NowProgram?.SDDT_TITLE}");
-                Thread.Sleep(1000); // 더 정밀한 주기로 변경
+                Console.WriteLine($"다음 프로그램 : {NextProgram?.SDDT_TITLE}");
+                Thread.Sleep(1000); // 더 정밀한 주기로 변경해야하나 이것도 시간을 정확히 맞춰야할까 
 
             }
 
@@ -191,59 +176,62 @@ namespace Apc_Sample
 
 
 
-        public void EventMethod()
+        public void EventTimer()
         {
 
             Stopwatch WatchisWatch = new Stopwatch();
             bool isLoaded = false;
-
+            TimeSpan Timediff;
+            double SecDiff = 0.0;
             while (true)
             {
                 //Task.Delay(100);
                 //var NowNow = DateTime.Now;
-                if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 5000.0 && isLoaded == false)
+                if ((SecDiff = (NextProgram.StartTime - DateTime.Now).TotalSeconds) <= 5 && isLoaded == false)
                 {
                     isLoaded = true;
                     WatchisWatch.Start();
-                    NextcachedSound = new CachedSound(@"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201120000_녹음12.wav");
-                    Console.WriteLine($"{WatchisWatch.ElapsedMilliseconds}");
-
-                    Console.WriteLine(" Load");
+                    NextcachedSound = new CachedSound(@"20241201120000_녹음12.wav");
+                    Console.WriteLine($"음악 파일 로딩 시간: {WatchisWatch.ElapsedMilliseconds}");
+                    Console.WriteLine($"SecDiff: {SecDiff}");
+                    Console.WriteLine($"Load: NextProgram: {NextProgram.StartTime} - {DateTime.Now} ");
+                    WatchisWatch.Stop();
                     //var NowPro = new CachedSound(@"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201220000_녹음22.wav");
                 }
-                if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 50.0)// 시작시간 50ms안으로 들어오면 1ms단위로 반복 
+                if ((Timediff = (NextProgram.StartTime - DateTime.Now)).TotalMilliseconds <= 50.0)// 시작시간 50ms안으로 들어오면 1ms단위로 반복 
                 {
-                    Console.WriteLine(" Load1");
-                    WatchisWatch.Restart();
-                    long currentMs = 0;
-                    while (true)
+                    Task.Run(() =>
                     {
-
-                        if (WatchisWatch.ElapsedMilliseconds > currentMs)
+                        Console.WriteLine(Timediff);
+                        Console.WriteLine(" Load1");
+                        WatchisWatch.Restart();
+                        long currentMs = 0;
+                        while (true)
                         {
-                            currentMs = WatchisWatch.ElapsedMilliseconds;
-                            Console.WriteLine($"{currentMs}");
 
-                            //if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 1.0)// 
-                            if (currentMs >= 49)// 49
+                            if (WatchisWatch.ElapsedMilliseconds > currentMs)
                             {
-                                Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} - {NextProgram.SDDT_TITLE} 방송 시작 이벤트 발생");
+                                currentMs = WatchisWatch.ElapsedMilliseconds;
+                                Console.WriteLine($"{currentMs}");
 
-                                //AsyncSomething?.Invoke(this, EventArgs.Empty);//
-                                AudioEventargs audioEventargs = new AudioEventargs();
-                                //AudioEventargs NowaudioEventargs = new AudioEventargs();
+                                //if ((NextProgram.StartTime - DateTime.Now).TotalMilliseconds <= 1.0)// 
+                                if (currentMs >= 49)// 49
+                                {
+                                    Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} - {NextProgram.SDDT_TITLE} 방송 시작 이벤트 발생");
 
-                                audioEventargs.NowCachedProgram = NowcachedSound;
-                                //현재 프로그램을 담아 놓고 잇어야하는데 
-                                audioEventargs.NextProgram = NextcachedSound;
-                                AsyncSomething?.Invoke(this, audioEventargs);//
+                                    AudioEventargs audioEventargs = new AudioEventargs();
 
-                                return;
+                                    audioEventargs.NowCachedProgram = NowcachedSound;
+                                    audioEventargs.NextProgram = NextcachedSound;
+                                    AsyncSomething?.Invoke(this, audioEventargs);//
+                                    WatchisWatch.Stop();
+                                    Console.WriteLine("이벤트끝");
 
-                                break;
+                                    break;
+                                }
                             }
                         }
-                    }
+                    });
                     break;
                 }
             }
@@ -263,7 +251,7 @@ namespace Apc_Sample
                 if ((NextProgram.StartTime - currentTime).TotalMilliseconds <= 10000.0 && !isLoaded)
                 {
                     isLoaded = true;
-                    NextcachedSound = new CachedSound(@"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201120000_녹음12.wav");
+                    NextcachedSound = new CachedSound(@"20241201120000_녹음12.wav");
                     //cachedsound가 어떤식으로 동작하는지 확인해야지 
 
                     Console.WriteLine("Load");
@@ -362,36 +350,6 @@ namespace Apc_Sample
         public WasapiOut? wasapiOut;
         public AudioFileReader? audioFileReader;
 
-        public void WasapiPlay()
-        {
-            filePath = @"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201120000_녹음12.wav";
-            string NextProgramFilePath = @"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201220000_녹음22.wav";
-            try
-            {
-                if (wasapiOut != null && wasapiOut.PlaybackState == PlaybackState.Playing)// 
-                {
-                    wasapiOut.Stop();
-                }
-
-                audioFileReader = new AudioFileReader(filePath); // 로드 
-                wasapiOut = new WasapiOut(AudioClientShareMode.Shared, false, 100);// 출력 설정 
-                // AudioClientShareMode.Shared: 사운다 카드 공유모드 오디올르 자동으로 리샘프링한다. 
-                // eventsync: 오디오 플레이하는 백그라운드 스레드 동작제어 , true 추가 오디오 원할 때 이벤트 수신, false 잠시 대기후 오디오 제공 
-                // Latency 지연시간 
-                wasapiOut.Init(audioFileReader);
-                Console.WriteLine($"{NowProgram.SDDT_TITLE}, {NowProgram.FilePath}");
-
-
-                wasapiOut?.Play();
-
-
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                //MessageBox.Show(ex.Message);
-            }
-        }
 
 
 
@@ -400,7 +358,7 @@ namespace Apc_Sample
             Stopwatch sw = Stopwatch.StartNew();
             while (sw.Elapsed.TotalMilliseconds < milliseconds)
             {
-                // Spin
+                Console.WriteLine($"{sw.ElapsedMilliseconds}");
             }
         }
 
@@ -431,29 +389,7 @@ namespace Apc_Sample
 
 
 
-        public void PrintNowProgram()
-        {
 
-            foreach (var item in schedules)
-            {
-                //Console.WriteLine($"방송 날짜 : {item.SDDT_SCDYDATE}");
-                //Console.WriteLine($"방송 시작 시간 : {item.SDDT_BRDTIME}");
-                //Console.WriteLine($"방송 종료 시간 : {item.SDDT_RUNTIME}");
-                //Console.WriteLine($"방송 제목 : {item.SDDT_TITLE}");
-                if (item.Now_Playing == true)
-                {
-                    Thread.Sleep(100); // 1초 대기
-                    Console.WriteLine($"방송중인 프로그램 : {item.SDDT_TITLE}");
-                }
-                //else
-                //{
-                //    Console.WriteLine($"방송중이지 않은 프로그램 : {item.SDDT_TITLE}");
-                //}
-
-            }
-
-
-        }
         public DateTime StringToDateTime(string SDDT_BRDTIME)
         {
             DateTime ProgramstartTime = DateTime.Today

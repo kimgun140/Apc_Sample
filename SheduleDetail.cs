@@ -15,11 +15,8 @@ namespace Apc_Sample
         public string SDDT_TITLE { get; set; }
         public string SDDT_SCDYDATE { get; set; }
         public string SDDT_BRDTIME { get; set; }
-
+        public int SDDT_NUM { get; set; }
         public bool Now_Playing { get; set; }
-
-        public TimeSpan actualElapsed { get; set; }
-        public int runtimeMilliSec { get; set; }
 
         public string FilePath { get; set; } = @"C:\Users\kimgu\OneDrive\바탕 화면\AudioServer자료\오디오데이터\audioam\20241201120000_녹음12.wav";
         public DateTime StartTime

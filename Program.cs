@@ -18,8 +18,23 @@ namespace Apc_Sample
             ApcSampleClass apcSampleClass = new ApcSampleClass();
 
 
+            var cachedSound1 = new CachedSound(@"20241201120000_녹음12.wav");
+            CachedSoundSampleProvider sampleProvider1 = new CachedSoundSampleProvider(cachedSound1);
+            myMixingSampleProvider myMixingSampleProvider = new myMixingSampleProvider(sampleProvider1.WaveFormat);
+            //myMixingSampleProvider myMixingSampleProvider = new myMixingSampleProvider(44100, 2);
+            // 송출될 파일의 포맷을 알아야겠다. bit depth는 변경해줌 
+
+            myMixingSampleProvider.ReadFully = true;
+            myMixingSampleProvider.AddMixerInput(sampleProvider1);
+            var outputdevice = new WaveOutEvent();
 
 
+
+            // 재생할 오디오 데이터가 없어도 재생하게 
+
+            //myMixingSampleProvider.AddMixerInput(sampleProvider1);
+            outputdevice.Init(myMixingSampleProvider);
+            outputdevice.Play();
 
 
             Thread LoadThread = new Thread(() =>
@@ -32,17 +47,17 @@ namespace Apc_Sample
             Thread CursorThread = new Thread(() =>
             {
                 //apcSampleClass.NewCursorCheck_Print();
-                apcSampleClass.NewCursorCheck_Print11();
+                apcSampleClass.CursorMethod();
             });
             CursorThread.Start();
 
             Thread WatchThread = new Thread(() =>
             {
-                apcSampleClass.EventMethod();
+                Thread.Sleep(5000);
+                apcSampleClass.EventTimer();
                 //apcSampleClass.EventMethhod123();
             }
             );
-            Thread.Sleep(5000);
             WatchThread.Start();
             //WatchThread.
             //apcSampleClass.AsyncSomething += async (sender, AudioEventargs) =>
@@ -57,13 +72,13 @@ namespace Apc_Sample
             {
                 eventcount++;
                 var now = DateTime.Now;
-                bool eventflag = false;
-                var eventflag1 = 0;
-                if ((now - lastInvokeTime) > throttleInterval)
+                //bool eventflag = false;
+                //var eventflag1 = 0;
+                if ((now - lastInvokeTime) < throttleInterval)
                 {
                     lastInvokeTime = now;
 
-                    eventflag = true;
+                    //eventflag = true;
                     // 간격 안쪽에 발생한 이벤트는 무시 
                     return;
                 }
@@ -73,25 +88,20 @@ namespace Apc_Sample
 
                 try
                 {
+                    Console.WriteLine("event try");
                     CachedSound cachedSound = e.NextProgram;
                     CachedSoundSampleProvider cachedSoundSampleProvider = new CachedSoundSampleProvider(cachedSound);
-                    //AudioPlayer.RemoveMixerInput(new CachedSoundSampleProvider(NowProgram));
-                    var plz = AudioPlayer.ConvertToRightChannelCount(cachedSoundSampleProvider);
 
-                    AudioPlayer.RemoveMixerInput(plz);
+                    myMixingSampleProvider.RemoveAllMixerInputs();
+                    myMixingSampleProvider.AddMixerInput(cachedSoundSampleProvider);
+                    Console.WriteLine($"오디오 Done");
 
-                    AudioPlayer.PlaySound(cachedSound);
-
-                    AudioPlayer.RemoveMixerInput(plz);
-
-                    //AudioPlayer.mixer.RemoveMixerInput(cachedSoundSampleProvider);
-                    //AudioPlayer.RemoveMixerInput(cachedSoundSampleProvider);
-
-                    await Task.Delay(5000);
                     Task.Run(() =>
                     {
-                        apcSampleClass.EventMethod();
+                        Thread.Sleep(5000);
+                        apcSampleClass.EventTimer();
                     });
+                    Console.WriteLine("Task.run after");
                     //Task.Run(() => { apcSampleClass.EventMethhod123(); });
 
                 }
